@@ -1,23 +1,33 @@
 import { apiClient } from "./api-client"
 
 export interface AssessmentData {
-  child_id: string
-  tool: "MCHAT" | "SCQ" | "TABC"
-  answers: Array<{ question: string; answer: string }>
+  _id: string
+  childId: string
+  type: "MCHAT" | "SCQ" | "TABC"
+  answers: Record<string, number>
   score: number
-  risk_level: "Low" | "Medium" | "High"
+  risk: "Low" | "Medium" | "High"
+  createdAt: string
 }
 
 export const assessmentService = {
-  async submitAssessment(data: Omit<AssessmentData, "score" | "risk_level">) {
-    return apiClient.post("/submit_assessment/", data)
+  async submitAssessment(data: {
+    childId: string
+    type: "MCHAT" | "SCQ" | "TABC"
+    answers: Record<string, number>
+  }) {
+    return apiClient.post<AssessmentData>("/api/assessments/add", data)
   },
 
   async getAssessments(childId: string) {
-    return apiClient.get(`/assessments/${childId}/`)
+    return apiClient.get<AssessmentData[]>(`/api/assessments/${childId}`)
   },
 
   async getAssessmentDetail(assessmentId: string) {
-    return apiClient.get(`/assessments/${assessmentId}/`)
+    return apiClient.get<AssessmentData>(`/api/assessments/details/${assessmentId}`)
+  },
+
+  async deleteAssessment(assessmentId: string) {
+    return apiClient.delete(`/api/assessments/${assessmentId}`)
   },
 }

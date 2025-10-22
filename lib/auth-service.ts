@@ -1,8 +1,7 @@
 import { apiClient } from "./api-client"
 
 export interface AuthResponse {
-  access: string
-  refresh: string
+  token: string
   user: {
     id: string
     email: string
@@ -18,45 +17,60 @@ export const authService = {
     name: string
     role: "caretaker" | "doctor" | "admin"
   }): Promise<AuthResponse | null> {
-    const response = await apiClient.post<AuthResponse>("/register/", data, false)
-    if (response.success && response.data) {
-      localStorage.setItem("access_token", response.data.access)
-      localStorage.setItem("refresh_token", response.data.refresh)
+    try {
+      const response = await apiClient.post<AuthResponse>("/api/auth/register", data, false)
+
+      if (!response.success || !response.data) {
+        throw new Error(response.error || "Registration failed")
+      }
+
+      // Store token and user info
+      localStorage.setItem("token", response.data.token)
       localStorage.setItem("user", JSON.stringify(response.data.user))
+
       return response.data
+    } catch (error) {
+      console.error("Registration error:", error instanceof Error ? error.message : error)
+      throw error
     }
-    return null
   },
 
   async login(email: string, password: string): Promise<AuthResponse | null> {
-    const response = await apiClient.post<AuthResponse>("/login/", { email, password }, false)
-    if (response.success && response.data) {
-      localStorage.setItem("access_token", response.data.access)
-      localStorage.setItem("refresh_token", response.data.refresh)
+    try {
+      const response = await apiClient.post<AuthResponse>("/api/auth/login", { email, password }, false)
+
+      if (!response.success || !response.data) {
+        throw new Error(response.error || "Login failed")
+      }
+
+      // Store token and user info
+      localStorage.setItem("token", response.data.token)
       localStorage.setItem("user", JSON.stringify(response.data.user))
+
       return response.data
+    } catch (error) {
+      console.error("Login error:", error)
+      return null
     }
-    return null
   },
 
-  logout(): void {
-    localStorage.removeItem("access_token")
-    localStorage.removeItem("refresh_token")
+  async logout(): Promise<void> {
+    localStorage.removeItem("token")
     localStorage.removeItem("user")
   },
 
-  getUser() {
-    if (typeof window !== "undefined") {
-      const user = localStorage.getItem("user")
-      return user ? JSON.parse(user) : null
+  async getUser(): Promise<AuthResponse["user"] | null> {
+    try {
+      const userStr = localStorage.getItem("user")
+      if (!userStr) return null
+      return JSON.parse(userStr)
+    } catch (error) {
+      console.error("Get user error:", error)
+      return null
     }
-    return null
   },
 
-  isAuthenticated(): boolean {
-    if (typeof window !== "undefined") {
-      return !!localStorage.getItem("access_token")
-    }
-    return false
+  async isAuthenticated(): Promise<boolean> {
+    return !!localStorage.getItem("token")
   },
 }

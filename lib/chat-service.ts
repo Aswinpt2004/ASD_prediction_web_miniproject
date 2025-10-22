@@ -1,45 +1,52 @@
+import io, { type Socket } from "socket.io-client"
+
 export interface ChatMessage {
   id: string
   sender: string
   message: string
   timestamp: string
-  child_id: string
+  room: string
 }
 
 export class ChatService {
-  private socket: WebSocket | null = null
-  private childId = ""
+  private socket: Socket | null = null
+  private room = ""
   private messageHandlers: ((message: ChatMessage) => void)[] = []
   private connectionHandlers: ((connected: boolean) => void)[] = []
 
   connect(childId: string, userId: string): Promise<void> {
     return new Promise((resolve, reject) => {
-      const wsUrl = `${process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000"}/ws/chat/${childId}/?user_id=${userId}`
+      const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:4000"
 
       try {
-        this.socket = new WebSocket(wsUrl)
-        this.childId = childId
+        this.socket = io(socketUrl, {
+          auth: {
+            token: localStorage.getItem("token"),
+          },
+        })
 
-        this.socket.onopen = () => {
-          console.log("[v0] WebSocket connected")
+        this.room = `child_${childId}`
+
+        this.socket.on("connect", () => {
+          console.log("[v0] Socket.io connected")
+          this.socket?.emit("join_room", { room: this.room })
           this.connectionHandlers.forEach((handler) => handler(true))
           resolve()
-        }
+        })
 
-        this.socket.onmessage = (event) => {
-          const message: ChatMessage = JSON.parse(event.data)
+        this.socket.on("chat_message", (message: ChatMessage) => {
           this.messageHandlers.forEach((handler) => handler(message))
-        }
+        })
 
-        this.socket.onerror = (error) => {
-          console.error("[v0] WebSocket error:", error)
+        this.socket.on("error", (error) => {
+          console.error("[v0] Socket.io error:", error)
           reject(error)
-        }
+        })
 
-        this.socket.onclose = () => {
-          console.log("[v0] WebSocket disconnected")
+        this.socket.on("disconnect", () => {
+          console.log("[v0] Socket.io disconnected")
           this.connectionHandlers.forEach((handler) => handler(false))
-        }
+        })
       } catch (error) {
         reject(error)
       }
@@ -47,8 +54,13 @@ export class ChatService {
   }
 
   sendMessage(message: string): void {
-    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-      this.socket.send(JSON.stringify({ message, child_id: this.childId }))
+    if (this.socket && this.socket.connected) {
+      const user = localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")!) : null
+      this.socket.emit("chat_message", {
+        room: this.room,
+        message,
+        sender: user?.name || "Unknown",
+      })
     }
   }
 
@@ -62,7 +74,7 @@ export class ChatService {
 
   disconnect(): void {
     if (this.socket) {
-      this.socket.close()
+      this.socket.disconnect()
       this.socket = null
     }
   }

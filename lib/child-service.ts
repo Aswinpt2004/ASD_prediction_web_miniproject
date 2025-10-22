@@ -1,28 +1,28 @@
 import { apiClient } from "./api-client"
 
 export interface Child {
-  id: string
+  _id: string
   name: string
-  age: number
+  dob: string
   gender: string
-  risk_level: "Low" | "Medium" | "High"
-  caretaker_id: string
+  notes?: string
+  caretakerId: string
 }
 
 export const childService = {
-  async addChild(data: Omit<Child, "id" | "caretaker_id">) {
-    return apiClient.post("/add_child/", data)
+  async addChild(data: { name: string; dob: string; gender: string; notes?: string }) {
+    return apiClient.post<Child>("/api/children/add", data)
   },
 
   async getChildren() {
-    return apiClient.get<Child[]>("/children/")
+    return apiClient.get<Child[]>("/api/children/my")
   },
 
   async getChild(childId: string) {
-    return apiClient.get<Child>(`/children/${childId}/`)
+    return apiClient.get<Child>(`/api/children/${childId}`)
   },
 
-  async updateChild(childId: string, data: Partial<Child>) {
-    return apiClient.put(`/children/${childId}/`, data)
+  async deleteChild(childId: string) {
+    return apiClient.delete(`/api/children/${childId}`)
   },
 }

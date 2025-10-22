@@ -1,27 +1,31 @@
 import { apiClient } from "./api-client"
 
 export interface Report {
-  id: string
-  child_id: string
-  doctor_id: string
-  report_text: string
-  attachments: string[]
-  created_at: string
+  _id: string
+  childId: string
+  doctorId: string
+  text: string
+  pdfUrl?: string
+  createdAt: string
 }
 
 export const reportService = {
-  async addReport(childId: string, data: { report_text: string; attachments?: File[] }) {
-    return apiClient.post("/doctor/add_report/", {
-      child_id: childId,
-      report_text: data.report_text,
+  async addReport(childId: string, data: { text: string; pdfUrl?: string }) {
+    return apiClient.post<Report>("/api/reports/add", {
+      childId,
+      ...data,
     })
   },
 
   async getReports(childId: string) {
-    return apiClient.get<Report[]>(`/caretaker/get_reports/${childId}/`)
+    return apiClient.get<Report[]>(`/api/reports/${childId}`)
   },
 
   async getReport(reportId: string) {
-    return apiClient.get<Report>(`/reports/${reportId}/`)
+    return apiClient.get<Report>(`/api/reports/details/${reportId}`)
+  },
+
+  async deleteReport(reportId: string) {
+    return apiClient.delete(`/api/reports/${reportId}`)
   },
 }
