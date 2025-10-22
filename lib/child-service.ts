@@ -7,6 +7,8 @@ export interface Child {
   gender: string
   notes?: string
   caretakerId: string
+  createdAt?: string
+  updatedAt?: string
 }
 
 export const childService = {
@@ -20,6 +22,10 @@ export const childService = {
 
   async getChild(childId: string) {
     return apiClient.get<Child>(`/api/children/${childId}`)
+  },
+
+  async updateChild(childId: string, data: { name?: string; dob?: string; gender?: string; notes?: string }) {
+    return apiClient.put<{ message: string; child: Child }>(`/api/children/${childId}`, data)
   },
 
   async deleteChild(childId: string) {

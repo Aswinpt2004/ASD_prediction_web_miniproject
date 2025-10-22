@@ -5,18 +5,22 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Plus, AlertCircle, CheckCircle2, Clock, TrendingUp } from "lucide-react"
-import { childService } from "@/lib/child-service"
+import { childService, type Child } from "@/lib/child-service"
 
 export default function CaretakerDashboard() {
-  const [children, setChildren] = useState<any[]>([])
+  const [children, setChildren] = useState<Child[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
   useEffect(() => {
     const fetchChildren = async () => {
       try {
-        const response = await childService.getMyChildren()
-        setChildren(response || [])
+        const response = await childService.getChildren()
+        if (response.success && response.data) {
+          setChildren(response.data)
+        } else {
+          setError(response.error || "Failed to load children")
+        }
       } catch (err) {
         console.error("[v0] Error fetching children:", err)
         setError("Failed to load children")
@@ -41,13 +45,16 @@ export default function CaretakerDashboard() {
     }
   }
 
+  const pendingAssessments = children.filter((child) => child.status === "pending").length
+  const completedAssessments = children.filter((child) => child.status === "completed").length
+  const highRiskChildren = children.filter((child) => child.riskLevel === "High").length
+
   if (loading) {
     return <div className="p-6 text-center">Loading...</div>
   }
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-slate-900 mb-2">Dashboard</h1>
         <p className="text-slate-600">Manage your children's autism screening assessments</p>
@@ -59,19 +66,19 @@ export default function CaretakerDashboard() {
           { label: "Total Children", value: children.length, icon: TrendingUp, color: "bg-blue-50" },
           {
             label: "Pending Assessments",
-            value: children.filter((c) => c.status === "pending").length,
+            value: pendingAssessments,
             icon: Clock,
             color: "bg-yellow-50",
           },
           {
             label: "Completed",
-            value: children.filter((c) => c.status === "completed").length,
+            value: completedAssessments,
             icon: CheckCircle2,
             color: "bg-green-50",
           },
           {
             label: "High Risk",
-            value: children.filter((c) => c.riskLevel === "High").length,
+            value: highRiskChildren,
             icon: AlertCircle,
             color: "bg-red-50",
           },
@@ -105,41 +112,51 @@ export default function CaretakerDashboard() {
 
         <div className="grid md:grid-cols-2 gap-6">
           {children.map((child) => (
-            <Card key={child.id} className="p-6 hover:shadow-lg transition-shadow">
+            <Card key={child._id} className="p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <h3 className="text-xl font-bold text-slate-900">{child.name}</h3>
                   <p className="text-sm text-slate-600">
-                    Age {child.age} • {child.gender}
+                    DOB: {new Date(child.dob).toLocaleDateString()} • {child.gender}
                   </p>
                 </div>
-                <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getRiskColor(child.riskLevel)}`}>
-                  {child.riskLevel} Risk
-                </span>
+                {child.riskLevel && (
+                  <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getRiskColor(child.riskLevel)}`}>
+                    {child.riskLevel} Risk
+                  </span>
+                )}
               </div>
 
               <div className="space-y-3 mb-4">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-600">Last Assessment:</span>
-                  <span className="font-medium text-slate-900">{child.lastAssessment}</span>
+                  <span className="text-slate-600">Notes:</span>
+                  <span className="font-medium text-slate-900">{child.notes || "No notes"}</span>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-600">Status:</span>
-                  <span
-                    className={`font-medium ${child.status === "completed" ? "text-green-600" : "text-yellow-600"}`}
-                  >
-                    {child.status === "completed" ? "Completed" : "Pending"}
-                  </span>
-                </div>
+                {child.lastAssessment && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-600">Last Assessment:</span>
+                    <span className="font-medium text-slate-900">{child.lastAssessment}</span>
+                  </div>
+                )}
+                {child.status && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-600">Status:</span>
+                    <span
+                      className={`font-medium ${child.status === "completed" ? "text-green-600" : "text-yellow-600"}`}
+                    >
+                      {child.status === "completed" ? "Completed" : "Pending"}
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-2">
-                <Link href={`/caretaker/questionnaires?childId=${child.id}`} className="flex-1">
+                <Link href={`/caretaker/questionnaires?childId=${child._id}`} className="flex-1">
                   <Button variant="outline" className="w-full bg-transparent">
                     Assessment
                   </Button>
                 </Link>
-                <Link href={`/caretaker/reports?childId=${child.id}`} className="flex-1">
+                <Link href={`/caretaker/reports?childId=${child._id}`} className="flex-1">
                   <Button variant="outline" className="w-full bg-transparent">
                     Reports
                   </Button>
@@ -149,28 +166,6 @@ export default function CaretakerDashboard() {
           ))}
         </div>
       </div>
-
-      {/* Recent Activity */}
-      <Card className="p-6">
-        <h3 className="text-lg font-bold text-slate-900 mb-4">Recent Activity</h3>
-        <div className="space-y-4">
-          {[
-            { action: "Assessment completed for Arjun", date: "2 hours ago", type: "completed" },
-            { action: "New report available for Priya", date: "1 day ago", type: "report" },
-            { action: "Doctor message received", date: "2 days ago", type: "message" },
-          ].map((activity, idx) => (
-            <div key={idx} className="flex items-center gap-4 pb-4 border-b border-slate-200 last:border-0">
-              <div
-                className={`w-2 h-2 rounded-full ${activity.type === "completed" ? "bg-green-600" : activity.type === "report" ? "bg-blue-600" : "bg-purple-600"}`}
-              />
-              <div className="flex-1">
-                <p className="text-slate-900 font-medium">{activity.action}</p>
-                <p className="text-sm text-slate-600">{activity.date}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </Card>
     </div>
   )
 }
