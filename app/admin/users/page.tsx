@@ -1,53 +1,36 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Search, Trash2, Edit2, CheckCircle2, AlertCircle } from "lucide-react"
 
 export default function UserManagementPage() {
-  const [users, setUsers] = useState([
-    {
-      id: "U001",
-      name: "Dr. Maya Patel",
-      email: "maya@example.com",
-      role: "doctor",
-      status: "active",
-      joinDate: "2025-08-15",
-      organization: "City Medical Center",
-    },
-    {
-      id: "U002",
-      name: "Rajesh Kumar",
-      email: "rajesh@example.com",
-      role: "caretaker",
-      status: "active",
-      joinDate: "2025-09-20",
-      organization: "-",
-    },
-    {
-      id: "U003",
-      name: "Dr. Vikram Singh",
-      email: "vikram@example.com",
-      role: "doctor",
-      status: "inactive",
-      joinDate: "2025-07-10",
-      organization: "Children's Hospital",
-    },
-    {
-      id: "U004",
-      name: "Anjali Patel",
-      email: "anjali@example.com",
-      role: "caretaker",
-      status: "active",
-      joinDate: "2025-10-01",
-      organization: "-",
-    },
-  ])
-
+  const [users, setUsers] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [filterRole, setFilterRole] = useState<"all" | "doctor" | "caretaker">("all")
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/users`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        })
+        const data = await response.json()
+        setUsers(data || [])
+      } catch (err) {
+        console.error("[v0] Error fetching users:", err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchUsers()
+  }, [])
 
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
@@ -57,8 +40,18 @@ export default function UserManagementPage() {
     return matchesSearch && matchesRole
   })
 
-  const handleDeleteUser = (id: string) => {
-    setUsers(users.filter((u) => u.id !== id))
+  const handleDeleteUser = async (id: string) => {
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/users/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      })
+      setUsers(users.filter((u) => u.id !== id))
+    } catch (err) {
+      console.error("[v0] Error deleting user:", err)
+    }
   }
 
   const getRoleColor = (role: string) => {
@@ -67,6 +60,10 @@ export default function UserManagementPage() {
 
   const getStatusColor = (status: string) => {
     return status === "active" ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-700"
+  }
+
+  if (loading) {
+    return <div className="p-6 text-center">Loading...</div>
   }
 
   return (
@@ -111,7 +108,6 @@ export default function UserManagementPage() {
                 <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Name</th>
                 <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Email</th>
                 <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Role</th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Organization</th>
                 <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Status</th>
                 <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Join Date</th>
                 <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Actions</th>
@@ -129,7 +125,6 @@ export default function UserManagementPage() {
                       {user.role}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-sm text-slate-600">{user.organization}</td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
                       {user.status === "active" ? (

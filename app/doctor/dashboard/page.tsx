@@ -1,44 +1,32 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { AlertCircle, CheckCircle2, Clock, Users } from "lucide-react"
+import { childService } from "@/lib/child-service"
 
 export default function DoctorDashboard() {
-  const [cases, setCases] = useState([
-    {
-      id: "C001",
-      childName: "Arjun",
-      caretakerName: "Rajesh Kumar",
-      age: 3,
-      riskLevel: "High",
-      lastAssessment: "2025-10-15",
-      status: "pending-review",
-      assessmentScore: 8,
-    },
-    {
-      id: "C002",
-      childName: "Priya",
-      caretakerName: "Anjali Sharma",
-      age: 5,
-      riskLevel: "Medium",
-      lastAssessment: "2025-10-10",
-      status: "report-submitted",
-      assessmentScore: 5,
-    },
-    {
-      id: "C003",
-      childName: "Rohan",
-      caretakerName: "Vikram Singh",
-      age: 4,
-      riskLevel: "Low",
-      lastAssessment: "2025-10-08",
-      status: "completed",
-      assessmentScore: 2,
-    },
-  ])
+  const [cases, setCases] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+
+  useEffect(() => {
+    const fetchCases = async () => {
+      try {
+        const response = await childService.getMyChildren()
+        setCases(response || [])
+      } catch (err) {
+        console.error("[v0] Error fetching cases:", err)
+        setError("Failed to load cases")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchCases()
+  }, [])
 
   const getRiskColor = (level: string) => {
     switch (level) {
@@ -64,6 +52,10 @@ export default function DoctorDashboard() {
       default:
         return "bg-slate-100 text-slate-700"
     }
+  }
+
+  if (loading) {
+    return <div className="p-6 text-center">Loading...</div>
   }
 
   return (
@@ -123,10 +115,8 @@ export default function DoctorDashboard() {
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
                 <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Child Name</th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Caretaker</th>
                 <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Age</th>
                 <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Risk Level</th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Score</th>
                 <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Status</th>
                 <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Action</th>
               </tr>
@@ -134,8 +124,7 @@ export default function DoctorDashboard() {
             <tbody>
               {cases.map((caseItem) => (
                 <tr key={caseItem.id} className="border-b border-slate-200 hover:bg-slate-50">
-                  <td className="px-6 py-4 text-sm font-medium text-slate-900">{caseItem.childName}</td>
-                  <td className="px-6 py-4 text-sm text-slate-600">{caseItem.caretakerName}</td>
+                  <td className="px-6 py-4 text-sm font-medium text-slate-900">{caseItem.name}</td>
                   <td className="px-6 py-4 text-sm text-slate-600">{caseItem.age} years</td>
                   <td className="px-6 py-4">
                     <span
@@ -144,7 +133,6 @@ export default function DoctorDashboard() {
                       {caseItem.riskLevel}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-sm font-medium text-slate-900">{caseItem.assessmentScore}</td>
                   <td className="px-6 py-4">
                     <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getStatusColor(caseItem.status)}`}>
                       {caseItem.status === "pending-review"

@@ -1,32 +1,32 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Plus, AlertCircle, CheckCircle2, Clock, TrendingUp } from "lucide-react"
+import { childService } from "@/lib/child-service"
 
 export default function CaretakerDashboard() {
-  const [children, setChildren] = useState([
-    {
-      id: "C001",
-      name: "Arjun",
-      age: 3,
-      gender: "Male",
-      riskLevel: "Medium",
-      lastAssessment: "2025-10-15",
-      status: "pending",
-    },
-    {
-      id: "C002",
-      name: "Priya",
-      age: 5,
-      gender: "Female",
-      riskLevel: "Low",
-      lastAssessment: "2025-10-10",
-      status: "completed",
-    },
-  ])
+  const [children, setChildren] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+
+  useEffect(() => {
+    const fetchChildren = async () => {
+      try {
+        const response = await childService.getMyChildren()
+        setChildren(response || [])
+      } catch (err) {
+        console.error("[v0] Error fetching children:", err)
+        setError("Failed to load children")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchChildren()
+  }, [])
 
   const getRiskColor = (level: string) => {
     switch (level) {
@@ -39,6 +39,10 @@ export default function CaretakerDashboard() {
       default:
         return "text-slate-600 bg-slate-50"
     }
+  }
+
+  if (loading) {
+    return <div className="p-6 text-center">Loading...</div>
   }
 
   return (
