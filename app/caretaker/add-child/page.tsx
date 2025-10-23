@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import { childService } from "@/lib/child-service"
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
@@ -33,15 +34,25 @@ export default function AddChildPage() {
     setLoading(true)
 
     try {
-      // TODO: Integrate with backend API
-      console.log("Adding child:", formData)
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      setSuccess(true)
-      setTimeout(() => {
-        router.push("/caretaker/dashboard")
-      }, 2000)
+      const response = await childService.addChild({
+        name: formData.name,
+        dob: formData.dateOfBirth,
+        gender: formData.gender,
+        notes: formData.medicalHistory,
+      })
+
+      if (response.success) {
+        setSuccess(true)
+        setTimeout(() => {
+          router.push("/caretaker/dashboard")
+        }, 2000)
+      } else {
+        console.error("Error adding child:", response.error)
+        alert(`Error: ${response.error}`)
+      }
     } catch (err) {
       console.error("Error adding child:", err)
+      alert("Failed to add child. Please try again.")
     } finally {
       setLoading(false)
     }
