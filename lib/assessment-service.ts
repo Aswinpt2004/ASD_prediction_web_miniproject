@@ -7,6 +7,14 @@ export interface AssessmentData {
   answers: Record<string, number>
   score: number
   risk: "Low" | "Medium" | "High"
+  llmAnalysis?: {
+    summary: string
+    recommendations: string
+    keyFindings: string[]
+    generatedAt: string
+  }
+  reviewedByDoctor?: string
+  reviewedAt?: string
   createdAt: string
 }
 
@@ -29,5 +37,15 @@ export const assessmentService = {
 
   async deleteAssessment(assessmentId: string) {
     return apiClient.delete(`/api/assessments/${assessmentId}`)
+  },
+
+  /**
+   * Request LLM analysis for an assessment (doctor only)
+   */
+  async requestAnalysis(assessmentId: string) {
+    return apiClient.post<{ message: string; assessment: AssessmentData }>(
+      `/api/assessments/${assessmentId}/analyze`,
+      {},
+    )
   },
 }

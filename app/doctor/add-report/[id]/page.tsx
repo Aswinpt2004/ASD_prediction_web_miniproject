@@ -36,6 +36,11 @@ export default function AddReportPage() {
     setLoading(true)
 
     try {
+      // Ensure childId is a string
+      if (!childId || typeof childId !== "string") {
+        throw new Error("Invalid child ID")
+      }
+
       const text = `Title: ${formData.title}\n\nDiagnosis:\n${formData.diagnosis}\n\nRecommendations:\n${formData.recommendations}\n\nFollow-up:\n${formData.followUp}`
       const res = await reportService.addReport(childId, { text, pdfUrl: "" })
       if (!res.success || !res.data) throw new Error(res.error || "Failed to add report")
