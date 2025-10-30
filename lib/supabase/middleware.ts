@@ -1,45 +1,14 @@
-import { createServerClient } from "@supabase/ssr"
 import { type NextRequest, NextResponse } from "next/server"
 
+/**
+ * Previously the project used Supabase middleware to sync session cookies server-side.
+ * This project uses a Node/Mongo backend and client-side JWTs (stored in localStorage),
+ * so server-side Supabase session handling is not applicable.
+ *
+ * For now, make this middleware a no-op that allows requests to continue.
+ * If you want server-side route protection, call your backend authentication
+ * endpoint here (for example, validate a bearer token cookie or header).
+ */
 export async function updateSession(request: NextRequest) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    // Supabase not configured yet - allow public pages to load
-    return NextResponse.next({ request })
-  }
-
-  const supabaseResponse = NextResponse.next({
-    request,
-  })
-
-  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      getAll() {
-        return request.cookies.getAll()
-      },
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value, options }) => supabaseResponse.cookies.set(name, value, options))
-      },
-    },
-  })
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (
-    !user &&
-    !request.nextUrl.pathname.startsWith("/login") &&
-    !request.nextUrl.pathname.startsWith("/register") &&
-    !request.nextUrl.pathname.startsWith("/auth") &&
-    !request.nextUrl.pathname.startsWith("/")
-  ) {
-    const url = request.nextUrl.clone()
-    url.pathname = "/login"
-    return NextResponse.redirect(url)
-  }
-
-  return supabaseResponse
+  return NextResponse.next()
 }

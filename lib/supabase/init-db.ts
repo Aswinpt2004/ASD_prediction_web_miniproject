@@ -1,4 +1,6 @@
-import { createClient as createServerClient } from "@/lib/supabase/server"
+// Supabase DB initialization removed — this project uses a Node/Mongo backend.
+// The SQL scripts below were part of a Supabase/Postgres template and are
+// not applicable for this repository. Keep this file as a reference only.
 
 const SQL_SCRIPTS = {
   createTables: `
@@ -176,28 +178,9 @@ CREATE POLICY "Users can delete their media" ON storage.objects
 
 export async function initializeDatabase() {
   try {
-    const supabase = await createServerClient()
-
-    const { error: checkError } = await supabase.from("user_profiles").select("id").limit(1)
-
-    if (!checkError) {
-      console.log("[v0] Database already initialized")
-      return true
-    }
-
-    console.log("[v0] Initializing database...")
-
-    for (const [name, sql] of Object.entries(SQL_SCRIPTS)) {
-      console.log(`[v0] Running ${name}...`)
-      const { error } = await supabase.rpc("exec", { sql })
-
-      if (error && !error.message.includes("already exists")) {
-        console.error(`[v0] Error running ${name}:`, error)
-      }
-    }
-
-    console.log("[v0] Database initialization complete")
-    return true
+    // Not applicable for Mongo backend — return false and log guidance.
+    console.log("[v0] initializeDatabase() skipped: project uses Node/Mongo backend.")
+    return false
   } catch (error) {
     console.error("[v0] Database initialization failed:", error)
     return false

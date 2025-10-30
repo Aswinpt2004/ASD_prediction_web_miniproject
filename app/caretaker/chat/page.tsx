@@ -3,7 +3,8 @@
 import type React from "react"
 
 import { useState, useRef, useEffect } from "react"
-import { useSearchParams } from "next/navigation"
+// Avoid using `useSearchParams` here because it requires a Suspense boundary during prerender.
+// Read the query string from window.location on the client instead.
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -22,8 +23,7 @@ export default function ChatPage() {
   const [connected, setConnected] = useState(false)
   const [error, setError] = useState("")
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const searchParams = useSearchParams()
-  const childIdParam = searchParams?.get("childId") || ""
+  const [childIdParam, setChildIdParam] = useState("")
   const [currentUser, setCurrentUser] = useState<any | null>(null)
 
   const scrollToBottom = () => {
@@ -44,9 +44,18 @@ export default function ChatPage() {
         }
         setCurrentUser(user)
 
-        // Try to obtain childId from URL search params
-        const searchParams = useSearchParams()
-        const childId = childIdParam
+        // Try to obtain childId from URL search params (client-only)
+        let childId = childIdParam
+        try {
+          if (!childId && typeof window !== "undefined") {
+            const params = new URLSearchParams(window.location.search)
+            childId = params.get("childId") || ""
+            setChildIdParam(childId)
+          }
+        } catch (err) {
+          // ignore
+        }
+
         if (!childId) {
           setError("No child selected")
           return
