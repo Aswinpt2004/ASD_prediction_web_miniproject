@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useState, useRef, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -21,6 +22,9 @@ export default function ChatPage() {
   const [connected, setConnected] = useState(false)
   const [error, setError] = useState("")
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const searchParams = useSearchParams()
+  const childIdParam = searchParams?.get("childId") || ""
+  const [currentUser, setCurrentUser] = useState<any | null>(null)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -33,14 +37,20 @@ export default function ChatPage() {
   useEffect(() => {
     const initializeChat = async () => {
       try {
-        const user = authService.getUser()
+        const user = await authService.getUser()
         if (!user) {
           setError("User not authenticated")
           return
         }
+        setCurrentUser(user)
 
-        // Assuming childId is passed via URL or context
-        const childId = "C1002" // TODO: Get from context or URL params
+        // Try to obtain childId from URL search params
+        const searchParams = useSearchParams()
+        const childId = childIdParam
+        if (!childId) {
+          setError("No child selected")
+          return
+        }
 
         await chatService.connect(childId, user.id)
         setConnected(true)
@@ -66,7 +76,7 @@ export default function ChatPage() {
       }
     }
 
-    initializeChat()
+  initializeChat()
 
     return () => {
       chatService.disconnect()
@@ -80,13 +90,14 @@ export default function ChatPage() {
     setLoading(true)
 
     // Add user message to UI
+    const userName = currentUser?.name || (await authService.getUser())?.name || "You"
     const userMessage: Message = {
       id: `M${Date.now()}`,
       sender: "caretaker",
-      senderName: "You",
+      senderName: userName,
       message: newMessage,
       timestamp: new Date().toISOString(),
-      child_id: "C1002",
+      room: `child_${childIdParam}`,
     }
 
     setMessages([...messages, userMessage])

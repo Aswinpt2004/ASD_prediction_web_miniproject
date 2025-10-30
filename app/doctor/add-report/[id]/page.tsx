@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { CheckCircle2 } from "lucide-react"
+import { reportService } from "@/lib/report-service"
 
 export default function AddReportPage() {
   const params = useParams()
@@ -35,9 +36,9 @@ export default function AddReportPage() {
     setLoading(true)
 
     try {
-      // TODO: Integrate with backend API
-      console.log("Submitting report:", { ...formData, childId })
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      const text = `Title: ${formData.title}\n\nDiagnosis:\n${formData.diagnosis}\n\nRecommendations:\n${formData.recommendations}\n\nFollow-up:\n${formData.followUp}`
+      const res = await reportService.addReport(childId, { text, pdfUrl: "" })
+      if (!res.success || !res.data) throw new Error(res.error || "Failed to add report")
       setSuccess(true)
       setTimeout(() => {
         router.push(`/doctor/view-child/${childId}`)

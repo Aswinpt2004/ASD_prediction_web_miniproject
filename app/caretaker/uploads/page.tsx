@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Upload, File, Trash2, AlertCircle, CheckCircle2 } from "lucide-react"
 import { uploadService, type Upload as UploadType } from "@/lib/upload-service"
+import { useSearchParams } from "next/navigation"
 
 export default function UploadsPage() {
   const [uploads, setUploads] = useState<UploadType[]>([])
@@ -15,7 +16,34 @@ export default function UploadsPage() {
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState("")
 
-  const childId = "C1002" // TODO: Get from context or URL params
+  const searchParams = useSearchParams()
+  const childId = searchParams?.get("childId") || ""
+
+  if (!childId) {
+    return (
+      <div className="p-6 max-w-4xl mx-auto">
+        <Card className="p-8">No child selected. Please open this page with a ?childId= parameter.</Card>
+      </div>
+    )
+  }
+
+  // load existing uploads
+  useEffect(() => {
+    let mounted = true
+    const load = async () => {
+      try {
+        const items = await uploadService.getUploads(childId)
+        if (mounted) setUploads(items)
+      } catch (err) {
+        console.error("Get uploads error:", err)
+      }
+    }
+
+    load()
+    return () => {
+      mounted = false
+    }
+  }, [childId])
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault()
@@ -50,13 +78,12 @@ export default function UploadsPage() {
     setError("")
 
     try {
-      const response = await uploadService.uploadMedia(childId, selectedFile, uploadType)
-
-      if (response.success && response.data) {
-        setUploads([response.data, ...uploads])
+      const uploaded = await uploadService.uploadMedia(childId, selectedFile, uploadType)
+      if (uploaded) {
+        setUploads([uploaded, ...uploads])
         setSelectedFile(null)
       } else {
-        setError(response.error || "Upload failed")
+        setError("Upload failed")
       }
     } catch (err) {
       setError("Upload failed. Please try again.")
@@ -68,8 +95,9 @@ export default function UploadsPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      await uploadService.deleteUpload(id)
-      setUploads(uploads.filter((u) => u.id !== id))
+      const ok = await uploadService.deleteUpload(id)
+      if (ok) setUploads(uploads.filter((u) => u.id !== id))
+      else setError("Failed to delete upload")
     } catch (err) {
       setError("Failed to delete upload")
     }
