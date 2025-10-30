@@ -3,10 +3,11 @@ import { apiClient } from "./api-client"
 export interface AssessmentData {
   _id: string
   childId: string
+  questionnaireId?: string
   type: "MCHAT" | "SCQ" | "TABC"
-  answers: Record<string, number>
+  answers: Record<string, any>
   score: number
-  risk: "Low" | "Medium" | "High"
+  risk: "Low" | "Medium" | "Moderate" | "High"
   llmAnalysis?: {
     summary: string
     recommendations: string
@@ -19,6 +20,15 @@ export interface AssessmentData {
 }
 
 export const assessmentService = {
+  async createAssessment(data: {
+    childId: string
+    questionnaireId: string
+    answers: Record<string, any>
+  }): Promise<AssessmentData> {
+    const response = await apiClient.post("/assessments/add", data)
+    return response.data as AssessmentData
+  },
+
   async submitAssessment(data: {
     childId: string
     type: "MCHAT" | "SCQ" | "TABC"
