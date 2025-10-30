@@ -1,46 +1,53 @@
 "use client"
+import { useState, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { ArrowRight } from "lucide-react"
+import { ArrowRight, Loader2 } from "lucide-react"
+import { questionnaireService, type Questionnaire } from "@/lib/questionnaire-service"
 
 export default function QuestionnairesPage() {
   const searchParams = useSearchParams()
   const childId = searchParams.get("childId")
+  const [questionnaires, setQuestionnaires] = useState<Questionnaire[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const questionnaires = [
-    {
-      id: "mchat",
-      name: "M-CHAT",
-      fullName: "Modified Checklist for Autism in Toddlers",
-      description: "20-question screening tool for children 16-30 months",
-      duration: "5-10 minutes",
-      status: "completed",
-      score: 8,
-      riskLevel: "High",
-    },
-    {
-      id: "scq",
-      name: "SCQ",
-      fullName: "Social Communication Questionnaire",
-      description: "Assesses social and communication abilities",
-      duration: "10-15 minutes",
-      status: "pending",
-      score: null,
-      riskLevel: null,
-    },
-    {
-      id: "tabc",
-      name: "TABC",
-      fullName: "Toddler Autism Behavior Checklist",
-      description: "20-item assessment of autistic behaviors",
-      duration: "5-10 minutes",
-      status: "not-started",
-      score: null,
-      riskLevel: null,
-    },
-  ]
+  useEffect(() => {
+    loadQuestionnaires()
+  }, [])
+
+  const loadQuestionnaires = async () => {
+    try {
+      setLoading(true)
+      const data = await questionnaireService.getActiveQuestionnaires()
+      setQuestionnaires(data)
+    } catch (err) {
+      console.error('Error loading questionnaires:', err)
+      setError('Failed to load questionnaires')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="p-6 max-w-4xl mx-auto flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 max-w-4xl mx-auto">
+        <Card className="p-6 bg-red-50 border-red-200">
+          <p className="text-red-600">{error}</p>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
@@ -49,77 +56,39 @@ export default function QuestionnairesPage() {
         <p className="text-slate-600">Complete standardized autism screening assessments</p>
       </div>
 
-      <div className="space-y-4">
-        {questionnaires.map((q) => (
-          <Card key={q.id} className="p-6 hover:shadow-lg transition-shadow">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex-1">
-                <h3 className="text-xl font-bold text-slate-900">{q.name}</h3>
-                <p className="text-sm text-slate-600 mb-2">{q.fullName}</p>
-                <p className="text-slate-700 mb-3">{q.description}</p>
-                <div className="flex items-center gap-4 text-sm">
-                  <span className="text-slate-600">Duration: {q.duration}</span>
-                  <span
-                    className={`px-3 py-1 rounded-full font-semibold ${
-                      q.status === "completed"
-                        ? "bg-green-100 text-green-700"
-                        : q.status === "pending"
-                          ? "bg-yellow-100 text-yellow-700"
-                          : "bg-slate-100 text-slate-700"
-                    }`}
-                  >
-                    {q.status === "completed" ? "Completed" : q.status === "pending" ? "In Progress" : "Not Started"}
-                  </span>
+      {questionnaires.length === 0 ? (
+        <Card className="p-8 text-center">
+          <p className="text-slate-600">No questionnaires available at this time.</p>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {questionnaires.map((q) => (
+            <Card key={q._id} className="p-6 hover:shadow-lg transition-shadow">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-slate-900">{q.name}</h3>
+                  <p className="text-sm text-slate-600 mb-2">{q.fullName}</p>
+                  <p className="text-slate-700 mb-3">{q.description || 'Autism screening assessment'}</p>
+                  <div className="flex items-center gap-4 text-sm">
+                    {q.duration && <span className="text-slate-600">Duration: {q.duration}</span>}
+                    {q.ageRange && <span className="text-slate-600">Age Range: {q.ageRange}</span>}
+                    <span className="text-slate-600">{q.questions.length} questions</span>
+                  </div>
                 </div>
               </div>
-              {q.status === "completed" && (
-                <div className="text-right ml-4">
-                  <p className="text-sm text-slate-600 mb-1">Score</p>
-                  <p className="text-2xl font-bold text-slate-900">{q.score}</p>
-                  <p
-                    className={`text-sm font-semibold ${
-                      q.riskLevel === "High"
-                        ? "text-red-600"
-                        : q.riskLevel === "Medium"
-                          ? "text-yellow-600"
-                          : "text-green-600"
-                    }`}
-                  >
-                    {q.riskLevel} Risk
-                  </p>
-                </div>
-              )}
-            </div>
 
-            <div className="flex gap-2">
-              {q.status === "not-started" ? (
-                <Link href={`/caretaker/questionnaires/${q.id}?childId=${childId}`} className="flex-1">
+              <div className="flex gap-2">
+                <Link href={`/caretaker/questionnaires/${q._id}?childId=${childId}`} className="flex-1">
                   <Button className="w-full flex items-center justify-center gap-2">
                     Start Assessment
                     <ArrowRight className="w-4 h-4" />
                   </Button>
                 </Link>
-              ) : q.status === "pending" ? (
-                <Link href={`/caretaker/questionnaires/${q.id}?childId=${childId}`} className="flex-1">
-                  <Button variant="outline" className="w-full flex items-center justify-center gap-2 bg-transparent">
-                    Continue Assessment
-                    <ArrowRight className="w-4 h-4" />
-                  </Button>
-                </Link>
-              ) : (
-                <>
-                  <Link href={`/caretaker/questionnaires/${q.id}?childId=${childId}`} className="flex-1">
-                    <Button variant="outline" className="w-full bg-transparent">
-                      View Results
-                    </Button>
-                  </Link>
-                  <Button variant="outline">Retake</Button>
-                </>
-              )}
-            </div>
-          </Card>
-        ))}
-      </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <Card className="mt-8 p-6 bg-blue-50 border-blue-200">
         <h4 className="font-semibold text-slate-900 mb-2">About These Assessments</h4>

@@ -16,7 +16,7 @@ export class ChatService {
 
   connect(childId: string, userId: string): Promise<void> {
     return new Promise((resolve, reject) => {
-      const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:4000"
+      const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:8002"
 
       try {
         this.socket = io(socketUrl, {

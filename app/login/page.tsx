@@ -27,7 +27,7 @@ export default function LoginPage() {
       const result = await authService.login(email, password)
 
       if (!result) {
-        setError("Supabase is not configured. Please add your Supabase credentials to the Vars section.")
+        setError("Invalid email or password. Please try again.")
         setLoading(false)
         return
       }
