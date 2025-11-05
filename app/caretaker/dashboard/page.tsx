@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Plus, AlertCircle, CheckCircle2, Clock, TrendingUp } from "lucide-react"
+import { Plus, AlertCircle, CheckCircle2, Clock, TrendingUp, MessageSquare, FileText, Upload, Loader2 } from "lucide-react"
 import { childService, type Child } from "@/lib/child-service"
 
 export default function CaretakerDashboard() {
@@ -13,89 +13,151 @@ export default function CaretakerDashboard() {
   const [error, setError] = useState("")
 
   useEffect(() => {
-    const fetchChildren = async () => {
-      try {
-        const response = await childService.getChildren()
-        if (response.success && response.data) {
-          setChildren(response.data)
-        } else {
-          setError(response.error || "Failed to load children")
-        }
-      } catch (err) {
-        console.error("[v0] Error fetching children:", err)
-        setError("Failed to load children")
-      } finally {
-        setLoading(false)
-      }
-    }
-
     fetchChildren()
   }, [])
 
-  const getRiskColor = (level: string) => {
-    switch (level) {
-      case "High":
-        return "text-red-600 bg-red-50"
-      case "Medium":
-        return "text-yellow-600 bg-yellow-50"
-      case "Low":
-        return "text-green-600 bg-green-50"
-      default:
-        return "text-slate-600 bg-slate-50"
+  const fetchChildren = async () => {
+    try {
+      setLoading(true)
+      const response = await childService.getChildren()
+      if (response.success && response.data) {
+        setChildren(response.data)
+      } else {
+        setError(response.error || "Failed to load children")
+      }
+    } catch (err) {
+      console.error("Error fetching children:", err)
+      setError("Failed to load children")
+    } finally {
+      setLoading(false)
     }
   }
 
-  const pendingAssessments = children.filter((child) => child.status === "pending").length
-  const completedAssessments = children.filter((child) => child.status === "completed").length
-  const highRiskChildren = children.filter((child) => child.riskLevel === "High").length
+  const getRiskColor = (level: string) => {
+    switch (level?.toLowerCase()) {
+      case "high":
+        return "text-red-600 bg-red-50 border-red-200"
+      case "medium":
+      case "moderate":
+        return "text-yellow-600 bg-yellow-50 border-yellow-200"
+      case "low":
+        return "text-green-600 bg-green-50 border-green-200"
+      default:
+        return "text-slate-600 bg-slate-50 border-slate-200"
+    }
+  }
 
   if (loading) {
-    return <div className="p-6 text-center">Loading...</div>
+    return (
+      <div className="p-6 flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-slate-600">Loading dashboard...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
+      {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-slate-900 mb-2">Dashboard</h1>
         <p className="text-slate-600">Manage your children's autism screening assessments</p>
       </div>
 
+      {/* Error Alert */}
+      {error && (
+        <Card className="p-4 mb-6 bg-red-50 border-red-200">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="w-5 h-5 text-red-600" />
+            <p className="text-red-700">{error}</p>
+          </div>
+        </Card>
+      )}
+
       {/* Quick Stats */}
       <div className="grid md:grid-cols-4 gap-4 mb-8">
-        {[
-          { label: "Total Children", value: children.length, icon: TrendingUp, color: "bg-blue-50" },
-          {
-            label: "Pending Assessments",
-            value: pendingAssessments,
-            icon: Clock,
-            color: "bg-yellow-50",
-          },
-          {
-            label: "Completed",
-            value: completedAssessments,
-            icon: CheckCircle2,
-            color: "bg-green-50",
-          },
-          {
-            label: "High Risk",
-            value: highRiskChildren,
-            icon: AlertCircle,
-            color: "bg-red-50",
-          },
-        ].map((stat, idx) => {
-          const Icon = stat.icon
-          return (
-            <Card key={idx} className={`p-6 ${stat.color}`}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-slate-600 mb-1">{stat.label}</p>
-                  <p className="text-3xl font-bold text-slate-900">{stat.value}</p>
-                </div>
-                <Icon className="w-8 h-8 text-slate-400" />
-              </div>
-            </Card>
-          )
-        })}
+        <Card className="p-6 bg-blue-50 border-blue-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-slate-600 mb-1">Total Children</p>
+              <p className="text-3xl font-bold text-slate-900">{children.length}</p>
+            </div>
+            <TrendingUp className="w-8 h-8 text-blue-400" />
+          </div>
+        </Card>
+
+        <Card className="p-6 bg-yellow-50 border-yellow-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-slate-600 mb-1">Need Assessment</p>
+              <p className="text-3xl font-bold text-slate-900">
+                {children.filter((c: any) => !c.lastAssessment).length}
+              </p>
+            </div>
+            <Clock className="w-8 h-8 text-yellow-400" />
+          </div>
+        </Card>
+
+        <Card className="p-6 bg-green-50 border-green-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-slate-600 mb-1">Completed</p>
+              <p className="text-3xl font-bold text-slate-900">
+                {children.filter((c: any) => c.lastAssessment).length}
+              </p>
+            </div>
+            <CheckCircle2 className="w-8 h-8 text-green-400" />
+          </div>
+        </Card>
+
+        <Card className="p-6 bg-red-50 border-red-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-slate-600 mb-1">High Risk</p>
+              <p className="text-3xl font-bold text-slate-900">
+                {children.filter((c: any) => c.riskLevel?.toLowerCase() === "high").length}
+              </p>
+            </div>
+            <AlertCircle className="w-8 h-8 text-red-400" />
+          </div>
+        </Card>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="grid md:grid-cols-4 gap-4 mb-8">
+        <Link href="/caretaker/add-child" className="block">
+          <Card className="p-6 hover:shadow-lg transition-all cursor-pointer border-2 hover:border-primary">
+            <Plus className="w-8 h-8 text-primary mb-3" />
+            <h3 className="font-semibold text-slate-900 mb-1">Add Child</h3>
+            <p className="text-sm text-slate-600">Register a new child</p>
+          </Card>
+        </Link>
+
+        <Link href="/caretaker/questionnaires" className="block">
+          <Card className="p-6 hover:shadow-lg transition-all cursor-pointer border-2 hover:border-primary">
+            <FileText className="w-8 h-8 text-primary mb-3" />
+            <h3 className="font-semibold text-slate-900 mb-1">Assessments</h3>
+            <p className="text-sm text-slate-600">Take questionnaires</p>
+          </Card>
+        </Link>
+
+        <Link href="/caretaker/uploads" className="block">
+          <Card className="p-6 hover:shadow-lg transition-all cursor-pointer border-2 hover:border-primary">
+            <Upload className="w-8 h-8 text-primary mb-3" />
+            <h3 className="font-semibold text-slate-900 mb-1">Upload Media</h3>
+            <p className="text-sm text-slate-600">Share videos/images</p>
+          </Card>
+        </Link>
+
+        <Link href="/caretaker/reports" className="block">
+          <Card className="p-6 hover:shadow-lg transition-all cursor-pointer border-2 hover:border-primary">
+            <FileText className="w-8 h-8 text-primary mb-3" />
+            <h3 className="font-semibold text-slate-900 mb-1">View Reports</h3>
+            <p className="text-sm text-slate-600">Doctor's reports</p>
+          </Card>
+        </Link>
       </div>
 
       {/* Children List */}
@@ -110,61 +172,69 @@ export default function CaretakerDashboard() {
           </Link>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6">
-          {children.map((child) => (
-            <Card key={child._id} className="p-6 hover:shadow-lg transition-shadow">
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h3 className="text-xl font-bold text-slate-900">{child.name}</h3>
-                  <p className="text-sm text-slate-600">
-                    DOB: {new Date(child.dob).toLocaleDateString()} • {child.gender}
-                  </p>
-                </div>
-                {child.riskLevel && (
-                  <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getRiskColor(child.riskLevel)}`}>
-                    {child.riskLevel} Risk
-                  </span>
-                )}
-              </div>
-
-              <div className="space-y-3 mb-4">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-600">Notes:</span>
-                  <span className="font-medium text-slate-900">{child.notes || "No notes"}</span>
-                </div>
-                {child.lastAssessment && (
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-600">Last Assessment:</span>
-                    <span className="font-medium text-slate-900">{child.lastAssessment}</span>
+        {children.length === 0 ? (
+          <Card className="p-12 text-center">
+            <AlertCircle className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-slate-900 mb-2">No Children Added Yet</h3>
+            <p className="text-slate-600 mb-6">Start by adding your child's information to begin assessments.</p>
+            <Link href="/caretaker/add-child">
+              <Button className="inline-flex items-center gap-2">
+                <Plus className="w-4 h-4" />
+                Add Your First Child
+              </Button>
+            </Link>
+          </Card>
+        ) : (
+          <div className="grid md:grid-cols-2 gap-6">
+            {children.map((child) => (
+              <Card key={child._id} className="p-6 hover:shadow-lg transition-shadow border-2">
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900">{child.name}</h3>
+                    <p className="text-sm text-slate-600">
+                      DOB: {new Date(child.dob).toLocaleDateString()} • {child.gender}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Age: {Math.floor((Date.now() - new Date(child.dob).getTime()) / (365.25 * 24 * 60 * 60 * 1000))} years
+                    </p>
                   </div>
-                )}
-                {child.status && (
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-600">Status:</span>
-                    <span
-                      className={`font-medium ${child.status === "completed" ? "text-green-600" : "text-yellow-600"}`}
-                    >
-                      {child.status === "completed" ? "Completed" : "Pending"}
+                  {(child as any).riskLevel && (
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getRiskColor((child as any).riskLevel)}`}>
+                      {(child as any).riskLevel} Risk
                     </span>
+                  )}
+                </div>
+
+                {child.notes && (
+                  <div className="mb-4 p-3 bg-slate-50 rounded-lg">
+                    <p className="text-sm text-slate-700">{child.notes}</p>
                   </div>
                 )}
-              </div>
 
-              <div className="flex gap-2">
-                <Link href={`/caretaker/questionnaires?childId=${child._id}`} className="flex-1">
-                  <Button variant="outline" className="w-full bg-transparent">
-                    Assessment
-                  </Button>
-                </Link>
-                <Link href={`/caretaker/reports?childId=${child._id}`} className="flex-1">
-                  <Button variant="outline" className="w-full bg-transparent">
-                    Reports
-                  </Button>
-                </Link>
-              </div>
-            </Card>
-          ))}
-        </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <Link href={`/caretaker/questionnaires?childId=${child._id}`}>
+                    <Button variant="outline" size="sm" className="w-full">
+                      <FileText className="w-4 h-4 mr-1" />
+                      Assess
+                    </Button>
+                  </Link>
+                  <Link href={`/caretaker/chat?childId=${child._id}`}>
+                    <Button variant="outline" size="sm" className="w-full">
+                      <MessageSquare className="w-4 h-4 mr-1" />
+                      Chat
+                    </Button>
+                  </Link>
+                  <Link href={`/caretaker/reports?childId=${child._id}`}>
+                    <Button variant="outline" size="sm" className="w-full">
+                      <FileText className="w-4 h-4 mr-1" />
+                      Reports
+                    </Button>
+                  </Link>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
