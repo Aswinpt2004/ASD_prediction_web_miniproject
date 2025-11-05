@@ -7,40 +7,44 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Search, AlertCircle } from "lucide-react"
+import { Search, AlertCircle, Loader2 } from "lucide-react"
 
 export default function SearchChildPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [searched, setSearched] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault()
     setSearched(true)
+    setLoading(true)
+    setError("")
 
-    // TODO: Integrate with backend API
-    if (searchQuery.trim()) {
-      // Simulate search results
-      setSearchResults([
+    try {
+      const token = localStorage.getItem("token")
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/search/children?query=${encodeURIComponent(searchQuery)}`,
         {
-          id: "C001",
-          name: "Arjun",
-          age: 3,
-          caretaker: "Rajesh Kumar",
-          riskLevel: "High",
-          lastAssessment: "2025-10-15",
-        },
-        {
-          id: "C002",
-          name: "Arjun Kumar",
-          age: 5,
-          caretaker: "Priya Singh",
-          riskLevel: "Medium",
-          lastAssessment: "2025-10-10",
-        },
-      ])
-    } else {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error("Search failed")
+      }
+
+      const data = await response.json()
+      setSearchResults(data || [])
+    } catch (err) {
+      console.error("Search error:", err)
+      setError("Failed to search. Please try again.")
       setSearchResults([])
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -82,7 +86,19 @@ export default function SearchChildPage() {
       </Card>
 
       {/* Search Results */}
-      {searched && (
+      {loading && (
+        <div className="flex justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      )}
+
+      {error && (
+        <Card className="p-6 bg-red-50 border-red-200 mb-4">
+          <p className="text-red-600">{error}</p>
+        </Card>
+      )}
+
+      {searched && !loading && (
         <>
           {searchResults.length > 0 ? (
             <div className="space-y-4">
@@ -92,16 +108,12 @@ export default function SearchChildPage() {
                     <div>
                       <h3 className="text-xl font-bold text-slate-900">{result.name}</h3>
                       <p className="text-sm text-slate-600">
-                        Age {result.age} • Caretaker: {result.caretaker}
+                        {result.gender} • Caretaker: {result.caretaker || 'Unknown'}
                       </p>
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getRiskColor(result.riskLevel)}`}>
-                      {result.riskLevel} Risk
-                    </span>
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <p className="text-sm text-slate-600">Last Assessment: {result.lastAssessment}</p>
                     <Link href={`/doctor/view-child/${result.id}`}>
                       <Button>View Details</Button>
                     </Link>

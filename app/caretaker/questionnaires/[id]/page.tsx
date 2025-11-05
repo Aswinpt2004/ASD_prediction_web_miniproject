@@ -32,6 +32,13 @@ export default function QuestionnairePage() {
     try {
       setLoading(true)
       const data = await questionnaireService.getQuestionnaireById(id)
+      
+      // Validate questionnaire data
+      if (!data.questions || data.questions.length === 0) {
+        setError('This questionnaire has no questions.')
+        return
+      }
+      
       setQuestionnaire(data)
       setAnswers(new Array(data.questions.length).fill(null))
     } catch (err) {
@@ -97,8 +104,9 @@ export default function QuestionnairePage() {
       return
     }
 
-    if (!childId) {
-      alert('Child ID is missing. Please return to the child selection page.')
+    if (!childId || childId === 'null' || childId === 'undefined') {
+      alert('Child ID is missing. Please select a child before starting the questionnaire.')
+      router.push('/caretaker/dashboard')
       return
     }
 
@@ -238,6 +246,29 @@ export default function QuestionnairePage() {
         <p className="text-slate-600">{questionnaire.fullName}</p>
       </div>
 
+      {/* Warning if no child ID */}
+      {(!childId || childId === 'null' || childId === 'undefined') && (
+        <Card className="p-4 mb-6 bg-yellow-50 border-yellow-200">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
+            <div>
+              <p className="font-semibold text-yellow-900">No Child Selected</p>
+              <p className="text-sm text-yellow-800 mt-1">
+                Please select a child from your dashboard before completing this questionnaire.
+              </p>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="mt-3 bg-yellow-100 hover:bg-yellow-200 border-yellow-300"
+                onClick={() => router.push('/caretaker/dashboard')}
+              >
+                Go to Dashboard
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* Progress Bar */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-2">
@@ -254,7 +285,7 @@ export default function QuestionnairePage() {
       {/* Question Card */}
       <Card className="p-8 mb-8">
         <h2 className="text-xl font-semibold text-slate-900 mb-6">
-          {questionnaire.questions[currentQuestion].text}
+          {questionnaire.questions[currentQuestion]?.text || 'Question text not available'}
         </h2>
 
         <div className="space-y-3 mb-8">

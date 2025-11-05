@@ -20,6 +20,11 @@ export const childService = {
     return apiClient.get<Child[]>("/api/children/my")
   },
 
+  async getMyChildren() {
+    // Alias for doctor dashboard compatibility
+    return this.getChildren()
+  },
+
   async getChild(childId: string) {
     return apiClient.get<Child>(`/api/children/${childId}`)
   },

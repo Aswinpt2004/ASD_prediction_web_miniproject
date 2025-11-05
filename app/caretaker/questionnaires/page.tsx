@@ -56,7 +56,7 @@ export default function QuestionnairesPage() {
         <p className="text-slate-600">Complete standardized autism screening assessments</p>
       </div>
 
-      {questionnaires.length === 0 ? (
+      {!questionnaires || questionnaires.length === 0 ? (
         <Card className="p-8 text-center">
           <p className="text-slate-600">No questionnaires available at this time.</p>
         </Card>
@@ -72,13 +72,13 @@ export default function QuestionnairesPage() {
                   <div className="flex items-center gap-4 text-sm">
                     {q.duration && <span className="text-slate-600">Duration: {q.duration}</span>}
                     {q.ageRange && <span className="text-slate-600">Age Range: {q.ageRange}</span>}
-                    <span className="text-slate-600">{q.questions.length} questions</span>
+                    <span className="text-slate-600">{q.questions?.length || 0} questions</span>
                   </div>
                 </div>
               </div>
 
               <div className="flex gap-2">
-                <Link href={`/caretaker/questionnaires/${q._id}?childId=${childId}`} className="flex-1">
+                <Link href={`/caretaker/questionnaires/${q._id}${childId ? `?childId=${childId}` : ''}`} className="flex-1">
                   <Button className="w-full flex items-center justify-center gap-2">
                     Start Assessment
                     <ArrowRight className="w-4 h-4" />

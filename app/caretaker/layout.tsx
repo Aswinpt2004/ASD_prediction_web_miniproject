@@ -2,6 +2,7 @@
 
 import type React from "react"
 import { BackButton } from "@/components/back-button"
+import { ErrorBoundary } from "@/components/error-boundary"
 
 import { useState } from "react"
 import Link from "next/link"
@@ -27,6 +28,7 @@ export default function CaretakerLayout({
   ]
 
   return (
+    <ErrorBoundary>
     <div className="flex h-screen bg-slate-50">
       {/* Sidebar */}
       <aside
@@ -96,5 +98,6 @@ export default function CaretakerLayout({
         <main className="flex-1 overflow-auto">{children}</main>
       </div>
     </div>
+    </ErrorBoundary>
   )
 }
