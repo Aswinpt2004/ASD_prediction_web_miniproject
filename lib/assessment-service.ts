@@ -25,7 +25,7 @@ export const assessmentService = {
     questionnaireId: string
     answers: Record<string, any>
   }): Promise<AssessmentData> {
-    const response = await apiClient.post("/assessments/add", data)
+    const response = await apiClient.post("/api/assessments/add", data)
     return response.data as AssessmentData
   },
 

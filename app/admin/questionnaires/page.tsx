@@ -1,73 +1,12 @@
 "use client"
 
+import type React from "react"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Plus, Edit, Trash2, Eye, EyeOff, Loader2, X } from "lucide-react"
-// Local definitions to avoid missing module '@/lib/questionnaire-service'
-export type Questionnaire = {
-  _id: string
-  name: string
-  fullName: string
-  description?: string
-  questions: { text: string; order: number }[]
-  answerOptions: string[]
-  scoringRules: any[]
-  scoringInfo?: string
-  duration?: string
-  ageRange?: string
-  isActive?: boolean
-}
-
-export type CreateQuestionnaireData = {
-  name: string
-  fullName: string
-  description?: string
-  questions: { text: string; order: number }[]
-  answerOptions: string[]
-  scoringRules: any[]
-  scoringInfo?: string
-  duration?: string
-  ageRange?: string
-  isActive?: boolean
-}
-
-export const questionnaireService = {
-  async getAllQuestionnaires(): Promise<Questionnaire[]> {
-    const res = await fetch('/api/questionnaires')
-    if (!res.ok) throw new Error('Failed to fetch questionnaires')
-    return res.json()
-  },
-
-  async createQuestionnaire(data: CreateQuestionnaireData) {
-    const res = await fetch('/api/questionnaires', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    })
-    if (!res.ok) throw new Error('Failed to create questionnaire')
-    return res.json()
-  },
-
-  async updateQuestionnaire(id: string, data: Partial<CreateQuestionnaireData> | any) {
-    const res = await fetch(`/api/questionnaires/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    })
-    if (!res.ok) throw new Error('Failed to update questionnaire')
-    return res.json()
-  },
-
-  async deleteQuestionnaire(id: string) {
-    const res = await fetch(`/api/questionnaires/${id}`, {
-      method: 'DELETE',
-    })
-    if (!res.ok) throw new Error('Failed to delete questionnaire')
-    return res.json()
-  },
-}
+import { questionnaireService, type Questionnaire, type CreateQuestionnaireData } from "@/lib/questionnaire-service"
 
 export default function AdminQuestionnairesPage() {
   const [questionnaires, setQuestionnaires] = useState<Questionnaire[]>([])
@@ -120,7 +59,7 @@ export default function AdminQuestionnairesPage() {
   const handleRemoveQuestion = (index: number) => {
     setFormData({
       ...formData,
-      questions: formData.questions.filter((_, i) => i !== index)
+      questions: formData.questions.filter((_, i: number) => i !== index)
     })
   }
 
@@ -256,7 +195,7 @@ export default function AdminQuestionnairesPage() {
                 </label>
                 <Input
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="e.g., M-CHAT"
                   required
                 />
@@ -268,7 +207,7 @@ export default function AdminQuestionnairesPage() {
                 </label>
                 <Input
                   value={formData.fullName}
-                  onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, fullName: e.target.value })}
                   placeholder="e.g., Modified Checklist for Autism in Toddlers"
                   required
                 />
@@ -281,7 +220,7 @@ export default function AdminQuestionnairesPage() {
               </label>
               <Input
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Brief description of the questionnaire"
               />
             </div>
@@ -293,7 +232,7 @@ export default function AdminQuestionnairesPage() {
                 </label>
                 <Input
                   value={formData.duration}
-                  onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, duration: e.target.value })}
                   placeholder="e.g., 5-10 minutes"
                 />
               </div>
@@ -304,7 +243,7 @@ export default function AdminQuestionnairesPage() {
                 </label>
                 <Input
                   value={formData.ageRange}
-                  onChange={(e) => setFormData({ ...formData, ageRange: e.target.value })}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, ageRange: e.target.value })}
                   placeholder="e.g., 16-30 months"
                 />
               </div>
@@ -315,7 +254,7 @@ export default function AdminQuestionnairesPage() {
                 </label>
                 <Input
                   value={formData.scoringInfo}
-                  onChange={(e) => setFormData({ ...formData, scoringInfo: e.target.value })}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, scoringInfo: e.target.value })}
                   placeholder="e.g., 0-2: Low | 3-7: Med | 8+: High"
                 />
               </div>
@@ -328,9 +267,9 @@ export default function AdminQuestionnairesPage() {
               <div className="flex gap-2 mb-2">
                 <Input
                   value={questionText}
-                  onChange={(e) => setQuestionText(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuestionText(e.target.value)}
                   placeholder="Enter question text..."
-                  onKeyDown={(e) => {
+                  onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
                     if (e.key === 'Enter') {
                       e.preventDefault()
                       handleAddQuestion()
@@ -343,7 +282,7 @@ export default function AdminQuestionnairesPage() {
               </div>
 
               <div className="space-y-2 max-h-64 overflow-y-auto">
-                {formData.questions.map((q, idx) => (
+                {formData.questions.map((q, idx: number) => (
                   <div key={idx} className="flex items-center gap-2 p-2 bg-slate-50 rounded">
                     <span className="text-sm font-medium text-slate-600">{idx + 1}.</span>
                     <span className="flex-1 text-sm text-slate-900">{q.text}</span>
