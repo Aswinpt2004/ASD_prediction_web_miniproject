@@ -28,4 +28,16 @@ export const reportService = {
   async deleteReport(reportId: string) {
     return apiClient.delete(`/api/reports/${reportId}`)
   },
+
+  async generateFromAssessment(data: {
+    assessmentId: string
+    childId: string
+    additionalNotes?: string
+  }) {
+    return apiClient.post<{
+      success: boolean
+      report: Report
+      analysis: any
+    }>("/api/reports/generate-from-assessment", data)
+  },
 }

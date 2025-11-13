@@ -4,10 +4,12 @@ import type React from "react"
 import { BackButton } from "@/components/back-button"
 import { ErrorBoundary } from "@/components/error-boundary"
 import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { authService } from "@/lib/auth-service"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Menu, X, LogOut, Home, Search, MessageSquare, FileText, Settings } from "lucide-react"
+import { Menu, X, LogOut, Home, Search, MessageSquare, FileText, Settings, Users } from "lucide-react"
 
 export default function DoctorLayout({
   children,
@@ -15,13 +17,15 @@ export default function DoctorLayout({
   children: React.ReactNode
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const router = useRouter()
   const pathname = usePathname()
 
   const navItems = [
     { href: "/doctor/dashboard", label: "Dashboard", icon: Home },
+    { href: "/doctor/patients", label: "My Patients", icon: Users },
     { href: "/doctor/search-child", label: "Search Child", icon: Search },
     { href: "/doctor/chat", label: "Messages", icon: MessageSquare },
-    { href: "/doctor/reports", label: "My Reports", icon: FileText },
+    { href: "/doctor/my-requests", label: "Access Requests", icon: FileText },
   ]
 
   return (
@@ -61,7 +65,14 @@ export default function DoctorLayout({
         </nav>
 
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-200">
-          <Button variant="outline" className="w-full flex items-center gap-2 bg-transparent">
+          <Button 
+            variant="outline" 
+            className="w-full flex items-center gap-2 bg-transparent"
+            onClick={async () => {
+              await authService.logout()
+              router.push('/login')
+            }}
+          >
             <LogOut className="w-4 h-4" />
             Sign Out
           </Button>

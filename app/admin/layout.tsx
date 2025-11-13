@@ -3,10 +3,12 @@
 import type React from "react"
 import { BackButton } from "@/components/back-button"
 import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { authService } from "@/lib/auth-service"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Menu, X, LogOut, Home, Users, BarChart3, Settings } from "lucide-react"
+import { Menu, X, LogOut, Home, Users, BarChart3, Settings, FileText } from "lucide-react"
 
 export default function AdminLayout({
   children,
@@ -14,12 +16,14 @@ export default function AdminLayout({
   children: React.ReactNode
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const router = useRouter()
   const pathname = usePathname()
 
   const navItems = [
     { href: "/admin/dashboard", label: "Dashboard", icon: Home },
     { href: "/admin/users", label: "User Management", icon: Users },
     { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
+    { href: "/admin/question-sets", label: "Question Sets", icon: FileText },
     { href: "/admin/settings", label: "Settings", icon: Settings },
   ]
 
@@ -59,7 +63,14 @@ export default function AdminLayout({
         </nav>
 
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-200">
-          <Button variant="outline" className="w-full flex items-center gap-2 bg-transparent">
+          <Button 
+            variant="outline" 
+            className="w-full flex items-center gap-2 bg-transparent"
+            onClick={async () => {
+              await authService.logout()
+              router.push('/login')
+            }}
+          >
             <LogOut className="w-4 h-4" />
             Sign Out
           </Button>

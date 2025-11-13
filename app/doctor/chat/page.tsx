@@ -1,54 +1,26 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useRef, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Send, Paperclip } from "lucide-react"
+import { chatService, type ChatMessage } from "@/lib/chat-service"
+import { authService } from "@/lib/auth-service"
 
-interface Message {
-  id: string
-  sender: "caretaker" | "doctor"
-  senderName: string
-  message: string
-  timestamp: string
-}
+interface Message extends ChatMessage { senderName: string }
 
 export default function DoctorChatPage() {
   const searchParams = useSearchParams()
   const childId = searchParams.get("childId")
 
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "M001",
-      sender: "doctor",
-      senderName: "You",
-      message: "Hello! I've reviewed Arjun's assessment results. Can you tell me more about his daily routines?",
-      timestamp: "2025-10-15 10:30 AM",
-    },
-    {
-      id: "M002",
-      sender: "caretaker",
-      senderName: "Rajesh Kumar",
-      message:
-        "Hi Dr. Patel! Arjun usually wakes up around 7 AM. He has difficulty with transitions between activities.",
-      timestamp: "2025-10-15 10:45 AM",
-    },
-    {
-      id: "M003",
-      sender: "doctor",
-      senderName: "You",
-      message:
-        "Thank you for that information. I'd like to schedule a follow-up consultation. Are you available next week?",
-      timestamp: "2025-10-15 11:00 AM",
-    },
-  ])
+  const [messages, setMessages] = useState<Message[]>([])
 
   const [newMessage, setNewMessage] = useState("")
   const [loading, setLoading] = useState(false)
+  const [connected, setConnected] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = () => {
@@ -59,36 +31,35 @@ export default function DoctorChatPage() {
     scrollToBottom()
   }, [messages])
 
+  useEffect(() => {
+    const init = async () => {
+      const user = await authService.getUser()
+      try {
+        await chatService.connect(childId || undefined, user?.id)
+        setConnected(true)
+        chatService.onMessage((message: ChatMessage) => {
+          setMessages((prev) => [
+            ...prev,
+            { ...message, senderName: message.sender === "doctor" ? "You" : "Caretaker" },
+          ])
+        })
+        chatService.onConnectionChange((isConnected) => setConnected(isConnected))
+      } catch (e) {
+        // ignore for now
+      }
+    }
+    init()
+    return () => chatService.disconnect()
+  }, [childId])
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newMessage.trim()) return
 
     setLoading(true)
 
-    // Add doctor message
-    const doctorMessage: Message = {
-      id: `M${Date.now()}`,
-      sender: "doctor",
-      senderName: "You",
-      message: newMessage,
-      timestamp: new Date().toLocaleString(),
-    }
-
-    setMessages([...messages, doctorMessage])
+    chatService.sendMessage(newMessage)
     setNewMessage("")
-
-    // Simulate caretaker response
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-
-    const caretakerMessage: Message = {
-      id: `M${Date.now() + 1}`,
-      sender: "caretaker",
-      senderName: "Rajesh Kumar",
-      message: "Thank you for your message. I'll review this and get back to you shortly.",
-      timestamp: new Date().toLocaleString(),
-    }
-
-    setMessages((prev) => [...prev, caretakerMessage])
     setLoading(false)
   }
 
@@ -96,7 +67,7 @@ export default function DoctorChatPage() {
     <div className="p-6 max-w-4xl mx-auto h-full flex flex-col">
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-slate-900 mb-2">Chat with Caretaker</h1>
-        <p className="text-slate-600">Child: Arjun (ID: {childId})</p>
+        <p className="text-slate-600">{childId ? `Child ID: ${childId}` : "Global chat"}</p>
       </div>
 
       {/* Chat Container */}
@@ -137,7 +108,7 @@ export default function DoctorChatPage() {
               disabled={loading}
               className="flex-1"
             />
-            <Button type="submit" disabled={loading || !newMessage.trim()}>
+            <Button type="submit" disabled={loading || !newMessage.trim() || !connected}>
               <Send className="w-4 h-4" />
             </Button>
           </form>

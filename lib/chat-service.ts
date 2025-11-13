@@ -11,10 +11,11 @@ export interface ChatMessage {
 export class ChatService {
   private socket: Socket | null = null
   private room = ""
+  private role: "caretaker" | "doctor" | "user" = "user"
   private messageHandlers: ((message: ChatMessage) => void)[] = []
   private connectionHandlers: ((connected: boolean) => void)[] = []
 
-  connect(childId: string, userId: string): Promise<void> {
+  connect(childId?: string, userId?: string): Promise<void> {
     return new Promise((resolve, reject) => {
       const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:8002"
 
@@ -24,12 +25,19 @@ export class ChatService {
             token: localStorage.getItem("token"),
           },
         })
+        const userRaw = localStorage.getItem("user")
+        if (userRaw) {
+          try {
+            const u = JSON.parse(userRaw)
+            this.role = (u?.role as any) || "user"
+          } catch {}
+        }
 
-        this.room = `child_${childId}`
+        this.room = childId ? `child_${childId}` : "global_chat"
 
         this.socket.on("connect", () => {
           console.log("[v0] Socket.io connected")
-          this.socket?.emit("join_room", { room: this.room })
+          this.socket?.emit("join_room", this.room)
           this.connectionHandlers.forEach((handler) => handler(true))
           resolve()
         })
@@ -59,7 +67,7 @@ export class ChatService {
       this.socket.emit("chat_message", {
         room: this.room,
         message,
-        sender: user?.name || "Unknown",
+        sender: this.role === "doctor" ? "doctor" : this.role === "caretaker" ? "caretaker" : (user?.name || "user"),
       })
     }
   }

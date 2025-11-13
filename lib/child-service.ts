@@ -20,6 +20,11 @@ export const childService = {
     return apiClient.get<Child[]>("/api/children/my")
   },
 
+  // Doctor: get authorized children (supports single doctor mode)
+  async getAuthorizedChildren() {
+    return apiClient.get<{ success: boolean; data: Child[] }>("/api/children/authorized")
+  },
+
   async getMyChildren() {
     // Alias for doctor dashboard compatibility
     return this.getChildren()

@@ -41,43 +41,40 @@ export default function AdminDashboard() {
       setLoading(true)
       const token = localStorage.getItem("token")
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002"
+      // Fetch admin overview (totals)
+      const overviewRes = await fetch(`${apiUrl}/api/dashboard/admin/overview`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const overview = await overviewRes.json()
 
-      // Fetch users
+      // Fetch users list (backend returns array)
       const usersRes = await fetch(`${apiUrl}/api/admin/users`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-      const usersData = await usersRes.json()
+      const usersArr = await usersRes.json()
 
-      // Fetch children
-      const childrenRes = await fetch(`${apiUrl}/api/children`, {
+      // Fetch analytics (optional breakdowns)
+      const analyticsRes = await fetch(`${apiUrl}/api/admin/analytics`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-      const childrenData = await childrenRes.json()
+      const analytics = await analyticsRes.json()
 
-      // Fetch assessments
-      const assessmentsRes = await fetch(`${apiUrl}/api/assessments`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const users = Array.isArray(usersArr) ? usersArr : []
+      const doctors = users.filter((u: any) => u.role === "doctor")
+      const caretakers = users.filter((u: any) => u.role === "caretaker")
+
+      setStats({
+        totalUsers: overview.totalUsers ?? analytics.totalUsers ?? users.length,
+        doctorCount: doctors.length,
+        caretakerCount: caretakers.length,
+        totalChildren: overview.totalChildren ?? 0,
+        totalAssessments: overview.totalAssessments ?? analytics.totalAssessments ?? 0,
+        highRiskCases: (overview.byRisk || analytics.byRisk || []).find((r: any) => (r._id || '').toLowerCase() === 'high')?.count || 0,
+        pendingRequests: 0,
+        completedAssessments: 0,
       })
-      const assessmentsData = await assessmentsRes.json()
 
-      if (usersData.success) {
-        const users = usersData.users || []
-        const doctors = users.filter((u: any) => u.role === "doctor")
-        const caretakers = users.filter((u: any) => u.role === "caretaker")
-        
-        setStats({
-          totalUsers: users.length,
-          doctorCount: doctors.length,
-          caretakerCount: caretakers.length,
-          totalChildren: childrenData.data?.length || 0,
-          totalAssessments: assessmentsData.assessments?.length || 0,
-          highRiskCases: childrenData.data?.filter((c: any) => c.riskLevel?.toLowerCase() === "high").length || 0,
-          pendingRequests: assessmentsData.assessments?.filter((a: any) => a.status === "pending").length || 0,
-          completedAssessments: assessmentsData.assessments?.filter((a: any) => a.status === "completed").length || 0,
-        })
-
-        setRecentUsers(users.slice(0, 5))
-      }
+      setRecentUsers(users.slice(0, 5))
     } catch (err) {
       console.error("Error fetching dashboard data:", err)
       setError("Failed to load dashboard data")

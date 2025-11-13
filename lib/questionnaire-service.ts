@@ -45,7 +45,7 @@ class QuestionnaireService {
   // Get all active questionnaires (for caretakers/doctors)
   async getActiveQuestionnaires(): Promise<Questionnaire[]> {
     try {
-      const response = await apiClient.get('/questionnaires/active')
+      const response = await apiClient.get('/api/questionnaires/active')
       return response.data as Questionnaire[]
     } catch (error) {
       console.error('[QuestionnaireService] Error fetching active questionnaires:', error)
@@ -56,7 +56,7 @@ class QuestionnaireService {
   // Get all questionnaires (admin only)
   async getAllQuestionnaires(): Promise<Questionnaire[]> {
     try {
-      const response = await apiClient.get('/questionnaires/all')
+      const response = await apiClient.get('/api/questionnaires/all')
       return response.data as Questionnaire[]
     } catch (error) {
       console.error('[QuestionnaireService] Error fetching all questionnaires:', error)
@@ -67,7 +67,7 @@ class QuestionnaireService {
   // Get single questionnaire by ID
   async getQuestionnaireById(id: string): Promise<Questionnaire> {
     try {
-      const response = await apiClient.get(`/questionnaires/${id}`)
+      const response = await apiClient.get(`/api/questionnaires/${id}`)
       return response.data as Questionnaire
     } catch (error) {
       console.error('[QuestionnaireService] Error fetching questionnaire:', error)
@@ -78,7 +78,7 @@ class QuestionnaireService {
   // Create new questionnaire (admin only)
   async createQuestionnaire(data: CreateQuestionnaireData): Promise<Questionnaire> {
     try {
-      const response = await apiClient.post('/questionnaires/create', data)
+      const response = await apiClient.post('/api/questionnaires/create', data)
       return (response.data as any).questionnaire
     } catch (error) {
       console.error('[QuestionnaireService] Error creating questionnaire:', error)
@@ -86,10 +86,21 @@ class QuestionnaireService {
     }
   }
 
+  // Bulk import questionnaires (admin only)
+  async bulkImport(items: CreateQuestionnaireData[]): Promise<{ insertedCount: number }> {
+    try {
+      const response = await apiClient.post('/api/questionnaires/bulk', { items })
+      return { insertedCount: (response.data as any).insertedCount ?? 0 }
+    } catch (error) {
+      console.error('[QuestionnaireService] Error bulk importing questionnaires:', error)
+      throw error
+    }
+  }
+
   // Update questionnaire (admin only)
   async updateQuestionnaire(id: string, data: Partial<CreateQuestionnaireData> & { isActive?: boolean }): Promise<Questionnaire> {
     try {
-      const response = await apiClient.put(`/questionnaires/${id}`, data)
+      const response = await apiClient.put(`/api/questionnaires/${id}`, data)
       return (response.data as any).questionnaire
     } catch (error) {
       console.error('[QuestionnaireService] Error updating questionnaire:', error)
@@ -100,7 +111,7 @@ class QuestionnaireService {
   // Delete questionnaire (admin only)
   async deleteQuestionnaire(id: string): Promise<void> {
     try {
-      await apiClient.delete(`/questionnaires/${id}`)
+      await apiClient.delete(`/api/questionnaires/${id}`)
     } catch (error) {
       console.error('[QuestionnaireService] Error deleting questionnaire:', error)
       throw error

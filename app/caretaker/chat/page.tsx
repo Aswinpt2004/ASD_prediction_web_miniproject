@@ -25,9 +25,7 @@ export default function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const [childIdParam, setChildIdParam] = useState("")
   const [currentUser, setCurrentUser] = useState<any | null>(null)
-  const [children, setChildren] = useState<Child[]>([])
   const [selectedChild, setSelectedChild] = useState<Child | null>(null)
-  const [showChildSelector, setShowChildSelector] = useState(false)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -47,12 +45,6 @@ export default function ChatPage() {
         }
         setCurrentUser(user)
 
-        // Load children list
-        const childrenResponse = await childService.getChildren()
-        if (childrenResponse.success && childrenResponse.data) {
-          setChildren(childrenResponse.data)
-        }
-
         // Try to obtain childId from URL search params (client-only)
         let childId = childIdParam
         try {
@@ -65,30 +57,24 @@ export default function ChatPage() {
           // ignore
         }
 
-        if (!childId || childId === 'null' || childId === 'undefined') {
-          setShowChildSelector(true)
-          return
+        // Optional: fetch selected child details if childId present
+        if (childId && childId !== 'null' && childId !== 'undefined') {
+          try {
+            const childResp = await childService.getChild(childId)
+            if ((childResp as any)?._id || (childResp as any)?.child) {
+              setSelectedChild(((childResp as any).child || childResp) as Child)
+            }
+          } catch {}
         }
 
-        // Find selected child
-        if (childrenResponse.success && childrenResponse.data) {
-          const child = childrenResponse.data.find((c: Child) => c._id === childId)
-          if (child) {
-            setSelectedChild(child)
-          }
-        }
-
-        await chatService.connect(childId, user.id)
+        await chatService.connect(childId || undefined, user.id)
         setConnected(true)
 
         // Listen for incoming messages
         chatService.onMessage((message: ChatMessage) => {
           setMessages((prev) => [
             ...prev,
-            {
-              ...message,
-              senderName: message.sender === "doctor" ? "Dr. Maya Patel" : "You",
-            },
+            { ...message, senderName: message.sender === "doctor" ? "Doctor" : "You" },
           ])
         })
 
@@ -110,7 +96,6 @@ export default function ChatPage() {
   }, [])
 
   const handleSelectChild = (child: Child) => {
-    // Update URL and reload
     window.location.href = `/caretaker/chat?childId=${child._id}`
   }
 
@@ -152,47 +137,7 @@ export default function ChatPage() {
         </p>
       </div>
 
-      {/* Child Selector */}
-      {showChildSelector && (
-        <Card className="p-8 mb-6">
-          <h2 className="text-xl font-bold text-slate-900 mb-4">Select a Child to Chat About</h2>
-          <p className="text-slate-600 mb-6">Choose which child you want to discuss with the doctor.</p>
-          
-          {children.length === 0 ? (
-            <div className="text-center py-8">
-              <AlertCircle className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-              <p className="text-slate-600 mb-4">You haven't added any children yet.</p>
-              <Link href="/caretaker/add-child">
-                <Button>Add Child</Button>
-              </Link>
-            </div>
-          ) : (
-            <div className="grid md:grid-cols-2 gap-4">
-              {children.map((child) => (
-                <Card 
-                  key={child._id} 
-                  className="p-4 hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-primary"
-                  onClick={() => handleSelectChild(child)}
-                >
-                  <h3 className="text-lg font-bold text-slate-900">{child.name}</h3>
-                  <p className="text-sm text-slate-600">
-                    DOB: {new Date(child.dob).toLocaleDateString()} • {child.gender}
-                  </p>
-                </Card>
-              ))}
-            </div>
-          )}
-          
-          <div className="mt-6">
-            <Link href="/caretaker/dashboard">
-              <Button variant="outline" className="w-full">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Dashboard
-              </Button>
-            </Link>
-          </div>
-        </Card>
-      )}
+      {/* In single-doctor mode, chat works globally if no child selected */}
 
       {error && !showChildSelector && (
         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex gap-3">
@@ -201,8 +146,8 @@ export default function ChatPage() {
         </div>
       )}
 
-      {/* Chat Container - Only show if child is selected */}
-      {!showChildSelector && (
+      {/* Chat Container */}
+      (
       <Card className="flex-1 flex flex-col overflow-hidden mb-6">
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
@@ -246,17 +191,17 @@ export default function ChatPage() {
           </form>
         </div>
       </Card>
-      )}
+      )
 
       {/* Info Box */}
-      {!showChildSelector && (
+      (
       <Card className="p-4 bg-blue-50 border-blue-200">
         <p className="text-sm text-blue-900">
           <strong>Note:</strong> All messages are encrypted and securely stored. Response times may vary based on the
           doctor's availability.
         </p>
       </Card>
-      )}
+      )
     </div>
   )
 }

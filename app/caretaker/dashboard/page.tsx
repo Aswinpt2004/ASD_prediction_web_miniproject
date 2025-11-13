@@ -126,7 +126,7 @@ export default function CaretakerDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid md:grid-cols-4 gap-4 mb-8">
+      <div className="grid md:grid-cols-3 gap-4 mb-8">
         <Link href="/caretaker/add-child" className="block">
           <Card className="p-6 hover:shadow-lg transition-all cursor-pointer border-2 hover:border-primary">
             <Plus className="w-8 h-8 text-primary mb-3" />
@@ -135,27 +135,19 @@ export default function CaretakerDashboard() {
           </Card>
         </Link>
 
+        <Link href="/caretaker/chat" className="block">
+          <Card className="p-6 hover:shadow-lg transition-all cursor-pointer border-2 hover:border-primary">
+            <MessageSquare className="w-8 h-8 text-primary mb-3" />
+            <h3 className="font-semibold text-slate-900 mb-1">Chat with Doctor</h3>
+            <p className="text-sm text-slate-600">Ask questions</p>
+          </Card>
+        </Link>
+
         <Link href="/caretaker/questionnaires" className="block">
           <Card className="p-6 hover:shadow-lg transition-all cursor-pointer border-2 hover:border-primary">
             <FileText className="w-8 h-8 text-primary mb-3" />
-            <h3 className="font-semibold text-slate-900 mb-1">Assessments</h3>
-            <p className="text-sm text-slate-600">Take questionnaires</p>
-          </Card>
-        </Link>
-
-        <Link href="/caretaker/uploads" className="block">
-          <Card className="p-6 hover:shadow-lg transition-all cursor-pointer border-2 hover:border-primary">
-            <Upload className="w-8 h-8 text-primary mb-3" />
-            <h3 className="font-semibold text-slate-900 mb-1">Upload Media</h3>
-            <p className="text-sm text-slate-600">Share videos/images</p>
-          </Card>
-        </Link>
-
-        <Link href="/caretaker/reports" className="block">
-          <Card className="p-6 hover:shadow-lg transition-all cursor-pointer border-2 hover:border-primary">
-            <FileText className="w-8 h-8 text-primary mb-3" />
-            <h3 className="font-semibold text-slate-900 mb-1">View Reports</h3>
-            <p className="text-sm text-slate-600">Doctor's reports</p>
+            <h3 className="font-semibold text-slate-900 mb-1">Take Assessment</h3>
+            <p className="text-sm text-slate-600">Screening questionnaires</p>
           </Card>
         </Link>
       </div>
@@ -211,23 +203,17 @@ export default function CaretakerDashboard() {
                   </div>
                 )}
 
-                <div className="grid grid-cols-3 gap-2">
-                  <Link href={`/caretaker/questionnaires?childId=${child._id}`}>
+                <div className="grid grid-cols-2 gap-2">
+                  <Link href={`/caretaker/child/${child._id}`}>
                     <Button variant="outline" size="sm" className="w-full">
                       <FileText className="w-4 h-4 mr-1" />
-                      Assess
+                      View Details
                     </Button>
                   </Link>
                   <Link href={`/caretaker/chat?childId=${child._id}`}>
                     <Button variant="outline" size="sm" className="w-full">
                       <MessageSquare className="w-4 h-4 mr-1" />
                       Chat
-                    </Button>
-                  </Link>
-                  <Link href={`/caretaker/reports?childId=${child._id}`}>
-                    <Button variant="outline" size="sm" className="w-full">
-                      <FileText className="w-4 h-4 mr-1" />
-                      Reports
                     </Button>
                   </Link>
                 </div>

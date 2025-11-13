@@ -27,12 +27,18 @@ export default function DoctorDashboard() {
   const fetchChildren = async () => {
     try {
       setLoading(true)
-      const response = await childService.getChildren()
-      if (response.success && response.data) {
-        setChildren(response.data)
-        setFilteredChildren(response.data)
+      const response = await childService.getAuthorizedChildren()
+      if (response.success && response.data && (response.data as any).data) {
+        // API client wraps data; response.data holds full JSON
+        const list: any[] = (response.data as any).data
+        setChildren(list as Child[])
+        setFilteredChildren(list as Child[])
+      } else if (response.success && (response.data as any)?.success) {
+        const list: any[] = (response.data as any).data || []
+        setChildren(list as Child[])
+        setFilteredChildren(list as Child[])
       } else {
-        setError(response.error || "Failed to load cases")
+        setError((response.error as string) || "Failed to load cases")
       }
     } catch (err) {
       console.error("Error fetching children:", err)
@@ -77,9 +83,9 @@ export default function DoctorDashboard() {
   }
 
   const totalCases = children.length
-  const pendingReview = children.filter((c: any) => !c.lastAssessment || c.status === "pending").length
-  const highRisk = children.filter((c: any) => c.riskLevel?.toLowerCase() === "high").length
-  const completed = children.filter((c: any) => c.status === "completed").length
+  const pendingReview = children.filter((c: any) => c.status === 'pending').length
+  const highRisk = children.filter((c: any) => c.riskLevel?.toLowerCase() === 'high').length
+  const completed = children.filter((c: any) => c.status === 'completed').length
 
   if (loading) {
     return (
@@ -271,10 +277,10 @@ export default function DoctorDashboard() {
                       {(child as any).status === "completed" ? "Completed" : "Pending"}
                     </span>
                   </div>
-                  {(child as any).lastAssessment && (
+                  {(child as any).lastAssessmentDate && (
                     <div className="flex justify-between text-sm">
                       <span className="text-slate-600">Last Assessment:</span>
-                      <span className="font-medium text-slate-900">{(child as any).lastAssessment}</span>
+                      <span className="font-medium text-slate-900">{new Date((child as any).lastAssessmentDate).toLocaleDateString()}</span>
                     </div>
                   )}
                 </div>
