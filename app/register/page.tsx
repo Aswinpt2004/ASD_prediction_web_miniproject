@@ -61,7 +61,7 @@ export default function RegisterPage() {
 
       if (!result) {
         setError(
-          "Backend API is not accessible. Make sure your backend is running at http://localhost:4000 and NEXT_PUBLIC_API_URL is set in environment variables.",
+          "Backend API is not accessible. Ensure NEXT_PUBLIC_API_URL in .env.local points to your backend (e.g. http://localhost:8002).",
         )
         setLoading(false)
         return
@@ -75,7 +75,7 @@ export default function RegisterPage() {
       const errorMessage = err instanceof Error ? err.message : "Registration failed. Please try again."
 
       if (errorMessage.includes("Failed to fetch")) {
-        setError("Cannot connect to backend. Ensure your backend is running at http://localhost:4000")
+        setError("Cannot connect to backend. Check NEXT_PUBLIC_API_URL in .env.local and that backend is running.")
       } else {
         setError(errorMessage)
       }

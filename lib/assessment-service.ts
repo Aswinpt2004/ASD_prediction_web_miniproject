@@ -26,7 +26,11 @@ export const assessmentService = {
     answers: Record<string, any>
   }): Promise<AssessmentData> {
     const response = await apiClient.post("/api/assessments/add", data)
-    return response.data as AssessmentData
+    // Backend returns assessment directly, not wrapped
+    if (response.success && response.data) {
+      return response.data as AssessmentData
+    }
+    throw new Error('Failed to create assessment')
   },
 
   async submitAssessment(data: {

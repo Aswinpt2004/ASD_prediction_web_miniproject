@@ -1,4 +1,10 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002"
+// Central backend base URL comes from .env.local; no hardcoded fallback.
+const API_BASE_URL: string = process.env.NEXT_PUBLIC_API_URL || ""
+
+if (!API_BASE_URL) {
+  // Surface a clear runtime error path while allowing type safety
+  console.error("[api-client] NEXT_PUBLIC_API_URL is not defined. Set it in .env.local.")
+}
 
 interface ApiResponse<T> {
   success: boolean

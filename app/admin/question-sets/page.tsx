@@ -45,7 +45,7 @@ export default function QuestionSetsPage() {
       if (!csvFile) throw new Error("Please choose a CSV file")
       if (!meta.name || !meta.fullName) throw new Error("Please enter Name and Full Name")
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002"
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL
       const token = localStorage.getItem("token")
       const form = new FormData()
       form.append("file", csvFile)

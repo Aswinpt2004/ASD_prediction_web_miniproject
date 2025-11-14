@@ -78,7 +78,7 @@ export default function ChildViewPage() {
       setGeneratingReport(true)
       setError("")
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002"
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL
       const token = localStorage.getItem("token")
 
       const response = await fetch(`${apiUrl}/api/reports/generate-combined`, {

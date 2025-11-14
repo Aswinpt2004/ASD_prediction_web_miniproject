@@ -34,7 +34,7 @@ export default function ManageAccessPage() {
   const loadChildAndDoctors = async () => {
     try {
       setLoading(true)
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002"
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL
       const token = localStorage.getItem("token")
 
       // Get child info with authorized doctors
@@ -73,7 +73,7 @@ export default function ManageAccessPage() {
     try {
       setSearching(true)
       setMessage(null)
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002"
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL
       const token = localStorage.getItem("token")
 
       const res = await fetch(`${apiUrl}/api/access/grant`, {
@@ -109,7 +109,7 @@ export default function ManageAccessPage() {
 
     try {
       setMessage(null)
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002"
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL
       const token = localStorage.getItem("token")
 
       const res = await fetch(`${apiUrl}/api/access/revoke`, {

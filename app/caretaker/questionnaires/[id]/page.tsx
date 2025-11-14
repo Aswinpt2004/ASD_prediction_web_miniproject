@@ -119,12 +119,15 @@ export default function QuestionnairePage() {
         answersObj[`q${idx}`] = answer || ''
       })
 
+      console.log('[Questionnaire] Submitting assessment:', { childId, questionnaireId: questionnaire._id, answerCount: Object.keys(answersObj).length })
+
       const result = await assessmentService.createAssessment({
         childId,
         questionnaireId: questionnaire._id,
         answers: answersObj
       })
 
+      console.log('[Questionnaire] Assessment saved:', result)
       setAssessmentResult(result)
       setShowResults(true)
     } catch (err) {

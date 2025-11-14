@@ -6,11 +6,13 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Plus, AlertCircle, CheckCircle2, Clock, TrendingUp, MessageSquare, FileText, Upload, Loader2 } from "lucide-react"
 import { childService, type Child } from "@/lib/child-service"
+import { reportService } from "@/lib/report-service"
 
 export default function CaretakerDashboard() {
   const [children, setChildren] = useState<Child[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const [reportCounts, setReportCounts] = useState<Record<string, number>>({})
 
   useEffect(() => {
     fetchChildren()
@@ -22,6 +24,8 @@ export default function CaretakerDashboard() {
       const response = await childService.getChildren()
       if (response.success && response.data) {
         setChildren(response.data)
+        // Fetch report counts for each child
+        await fetchReportCounts(response.data)
       } else {
         setError(response.error || "Failed to load children")
       }
@@ -31,6 +35,22 @@ export default function CaretakerDashboard() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const fetchReportCounts = async (childrenList: Child[]) => {
+    const counts: Record<string, number> = {}
+    await Promise.all(
+      childrenList.map(async (child) => {
+        try {
+          const response = await reportService.getReports(child._id)
+          counts[child._id] = response.success && response.data ? response.data.length : 0
+        } catch (err) {
+          console.error(`Error fetching reports for child ${child._id}:`, err)
+          counts[child._id] = 0
+        }
+      })
+    )
+    setReportCounts(counts)
   }
 
   const getRiskColor = (level: string) => {
@@ -203,19 +223,29 @@ export default function CaretakerDashboard() {
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   <Link href={`/caretaker/child/${child._id}`}>
                     <Button variant="outline" size="sm" className="w-full">
                       <FileText className="w-4 h-4 mr-1" />
                       View Details
                     </Button>
                   </Link>
-                  <Link href={`/caretaker/chat?childId=${child._id}`}>
+                  <Link href={`/caretaker/questionnaires?childId=${child._id}`}>
                     <Button variant="outline" size="sm" className="w-full">
-                      <MessageSquare className="w-4 h-4 mr-1" />
-                      Chat
+                      Take Assessment
                     </Button>
                   </Link>
+                  {reportCounts[child._id] > 0 ? (
+                    <Link href={`/caretaker/reports?childId=${child._id}`}>
+                      <Button variant="outline" size="sm" className="w-full">
+                        View Reports ({reportCounts[child._id]})
+                      </Button>
+                    </Link>
+                  ) : (
+                    <Button variant="outline" size="sm" className="w-full" disabled>
+                      No Reports
+                    </Button>
+                  )}
                 </div>
               </Card>
             ))}

@@ -17,7 +17,11 @@ export class ChatService {
 
   connect(childId?: string, userId?: string): Promise<void> {
     return new Promise((resolve, reject) => {
-      const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:8002"
+      const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL
+      if (!socketUrl) {
+        console.error("[chat-service] NEXT_PUBLIC_SOCKET_URL missing in .env.local")
+        return
+      }
 
       try {
         this.socket = io(socketUrl, {

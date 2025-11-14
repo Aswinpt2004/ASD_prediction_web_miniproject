@@ -40,7 +40,8 @@ export default function AdminDashboard() {
     try {
       setLoading(true)
       const token = localStorage.getItem("token")
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002"
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL
+      if (!apiUrl) throw new Error("NEXT_PUBLIC_API_URL not set")
       // Fetch admin overview (totals)
       const overviewRes = await fetch(`${apiUrl}/api/dashboard/admin/overview`, {
         headers: { Authorization: `Bearer ${token}` },

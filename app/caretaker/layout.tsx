@@ -10,7 +10,7 @@ import { authService } from "@/lib/auth-service"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Menu, X, LogOut, Home, Plus, FileText, Upload, MessageSquare, Settings } from "lucide-react"
+import { Menu, X, LogOut, Home, Plus, MessageSquare, Settings } from "lucide-react"
 
 export default function CaretakerLayout({
   children,
@@ -24,10 +24,7 @@ export default function CaretakerLayout({
   const navItems = [
     { href: "/caretaker/dashboard", label: "Dashboard", icon: Home },
     { href: "/caretaker/add-child", label: "Add Child", icon: Plus },
-    { href: "/caretaker/questionnaires", label: "Questionnaires", icon: FileText },
-    { href: "/caretaker/uploads", label: "Media Upload", icon: Upload },
     { href: "/caretaker/chat", label: "Chat with Doctor", icon: MessageSquare },
-    { href: "/caretaker/reports", label: "Reports", icon: FileText },
   ]
 
   return (

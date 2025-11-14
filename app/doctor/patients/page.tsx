@@ -20,7 +20,7 @@ export default function DoctorChildrenPage() {
   const loadChildren = async () => {
     try {
       setLoading(true)
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002"
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL
       const token = localStorage.getItem("token")
 
       const res = await fetch(`${apiUrl}/api/children/authorized`, {

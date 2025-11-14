@@ -42,14 +42,23 @@ export default function AddReportPage() {
       }
 
       const text = `Title: ${formData.title}\n\nDiagnosis:\n${formData.diagnosis}\n\nRecommendations:\n${formData.recommendations}\n\nFollow-up:\n${formData.followUp}`
+      
+      console.log('[AddReport] Submitting report for child:', childId)
       const res = await reportService.addReport(childId, { text, pdfUrl: "" })
-      if (!res.success || !res.data) throw new Error(res.error || "Failed to add report")
+      
+      console.log('[AddReport] Response:', res)
+      if (!res.success || !res.data) {
+        throw new Error(res.error || "Failed to add report")
+      }
+      
+      console.log('[AddReport] Report saved successfully:', res.data._id)
       setSuccess(true)
       setTimeout(() => {
         router.push(`/doctor/view-child/${childId}`)
       }, 2000)
     } catch (err) {
       console.error("Error submitting report:", err)
+      alert('Failed to submit report. Please check the console and try again.')
     } finally {
       setLoading(false)
     }
