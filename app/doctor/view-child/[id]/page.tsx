@@ -6,7 +6,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { AlertCircle, FileText, MessageSquare, Upload, Loader2, Sparkles } from "lucide-react"
+import { AlertCircle, FileText, MessageSquare, Upload, Loader2, Sparkles, X, Eye, Download } from "lucide-react"
 import { childService } from "@/lib/child-service"
 import { assessmentService } from "@/lib/assessment-service"
 import { reportService } from "@/lib/report-service"
@@ -23,6 +23,7 @@ export default function ViewChildPage() {
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedAssessment, setSelectedAssessment] = useState<string | null>(null)
+  const [selectedReport, setSelectedReport] = useState<any | null>(null)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -35,8 +36,18 @@ export default function ViewChildPage() {
         ])
         
         setChildData(child)
-        setAssessments(assessmentData || [])
-        setReports(reportData || [])
+        // Handle ApiResponse wrapper
+        if (assessmentData && (assessmentData as any).success) {
+          setAssessments((assessmentData as any).data || [])
+        } else {
+          setAssessments(assessmentData || [])
+        }
+        // Handle ApiResponse wrapper for reports
+        if (reportData && (reportData as any).success) {
+          setReports((reportData as any).data || [])
+        } else {
+          setReports(reportData || [])
+        }
       } catch (err: any) {
         console.error("Failed to fetch child data:", err)
         setError(err.message || "Failed to load child data")
@@ -64,7 +75,11 @@ export default function ViewChildPage() {
         alert("AI Report generated successfully!")
         // Refresh reports
         const updatedReports = await reportService.getReports(childId)
-        setReports(updatedReports || [])
+        if (updatedReports && (updatedReports as any).success) {
+          setReports((updatedReports as any).data || [])
+        } else {
+          setReports(updatedReports || [])
+        }
       }
     } catch (err: any) {
       console.error("Failed to generate report:", err)
@@ -299,7 +314,26 @@ export default function ViewChildPage() {
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-slate-700 line-clamp-3">{report.text}</p>
+                    <p className="text-sm text-slate-700 line-clamp-3 mb-3">{report.text}</p>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setSelectedReport(report)}
+                        className="flex items-center gap-2"
+                      >
+                        <Eye className="w-4 h-4" />
+                        View Report
+                      </Button>
+                      {report.pdfUrl && (
+                        <Button variant="outline" size="sm" asChild>
+                          <a href={report.pdfUrl} target="_blank" rel="noopener noreferrer">
+                            <Download className="w-4 h-4 mr-2" />
+                            Download
+                          </a>
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -320,6 +354,96 @@ export default function ViewChildPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Report Modal */}
+      {selectedReport && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedReport(null)}>
+          <Card className="max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white border-b p-6 flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900">
+                  {selectedReport.analysis?.summary || "Medical Report"}
+                </h2>
+                <p className="text-sm text-slate-600 mt-1">
+                  {new Date(selectedReport.createdAt).toLocaleDateString()} at {new Date(selectedReport.createdAt).toLocaleTimeString()}
+                </p>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setSelectedReport(null)}
+                className="flex items-center gap-2"
+              >
+                <X className="w-4 h-4" />
+                Close
+              </Button>
+            </div>
+            
+            <div className="p-6">
+              {selectedReport.analysis?.riskLevel && (
+                <div className="mb-6 flex items-center gap-3">
+                  <span className="text-sm font-semibold text-slate-600">Risk Level:</span>
+                  <span className={`px-4 py-2 rounded-full text-sm font-semibold ${
+                    selectedReport.analysis.riskLevel === "High" ? "bg-red-100 text-red-700" :
+                    selectedReport.analysis.riskLevel === "Medium" ? "bg-yellow-100 text-yellow-700" :
+                    "bg-green-100 text-green-700"
+                  }`}>
+                    {selectedReport.analysis.riskLevel}
+                  </span>
+                </div>
+              )}
+
+              <div className="prose prose-sm max-w-none">
+                <pre className="whitespace-pre-wrap font-sans text-slate-700 leading-relaxed">
+                  {selectedReport.text}
+                </pre>
+              </div>
+
+              {selectedReport.analysis?.keyFindings && selectedReport.analysis.keyFindings.length > 0 && (
+                <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <h4 className="font-semibold text-blue-900 mb-3">Key Findings:</h4>
+                  <ul className="list-disc list-inside space-y-1 text-sm text-blue-800">
+                    {selectedReport.analysis.keyFindings.map((finding: string, idx: number) => (
+                      <li key={idx}>{finding}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {selectedReport.analysis?.recommendations && (
+                <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <h4 className="font-semibold text-green-900 mb-3">Recommendations:</h4>
+                  <div className="text-sm text-green-800 whitespace-pre-wrap">
+                    {Array.isArray(selectedReport.analysis.recommendations) 
+                      ? selectedReport.analysis.recommendations.join('\n')
+                      : selectedReport.analysis.recommendations
+                    }
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-6 flex gap-3">
+                <Button 
+                  variant="outline" 
+                  onClick={() => window.print()}
+                  className="flex items-center gap-2"
+                >
+                  <FileText className="w-4 h-4" />
+                  Print Report
+                </Button>
+                {selectedReport.pdfUrl && (
+                  <Button variant="outline" asChild>
+                    <a href={selectedReport.pdfUrl} target="_blank" rel="noopener noreferrer">
+                      <Download className="w-4 h-4 mr-2" />
+                      Download PDF
+                    </a>
+                  </Button>
+                )}
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   )
 }
