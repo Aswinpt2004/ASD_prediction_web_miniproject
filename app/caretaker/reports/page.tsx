@@ -1,11 +1,10 @@
 "use client"
 
 import React from "react"
-
 import { useSearchParams } from "next/navigation"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { FileText, Download, Eye, Loader2 } from "lucide-react"
+import { FileText, Download, Eye, Loader2, AlertCircle } from "lucide-react"
 import { reportService } from "@/lib/report-service"
 import { childService } from "@/lib/child-service"
 
@@ -27,10 +26,14 @@ export default function ReportsPage() {
 
       try {
         setLoading(true)
-        const data = await reportService.getReports(childId)
-        setReports(data || [])
+        const response = await reportService.getReports(childId)
+        if (response.success && response.data) {
+          setReports(response.data)
+        } else {
+          setError(response.error || "Failed to load reports")
+        }
       } catch (err: any) {
-        console.error("Failed to fetch reports:", err)
+        console.error("[ReportsPage] Failed to fetch reports:", err)
         setError(err.message || "Failed to load reports")
       } finally {
         setLoading(false)
@@ -53,8 +56,13 @@ export default function ReportsPage() {
   if (error) {
     return (
       <div className="p-6 max-w-4xl mx-auto">
-        <Card className="p-12 text-center border-red-200">
-          <p className="text-red-600">{error}</p>
+        <Card className="p-8 flex flex-col items-center text-center bg-red-50 border-red-200">
+          <AlertCircle className="w-10 h-10 text-red-600 mb-3" />
+            <h2 className="text-lg font-semibold text-red-700 mb-1">Unable to load reports</h2>
+            <p className="text-sm text-red-600 mb-4">{error}</p>
+            {childId && (
+              <Button variant="outline" onClick={() => window.location.reload()} size="sm">Try Again</Button>
+            )}
         </Card>
       </div>
     )

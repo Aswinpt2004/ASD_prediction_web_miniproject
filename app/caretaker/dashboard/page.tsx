@@ -7,12 +7,17 @@ import { Card } from "@/components/ui/card"
 import { Plus, AlertCircle, CheckCircle2, Clock, TrendingUp, MessageSquare, FileText, Upload, Loader2 } from "lucide-react"
 import { childService, type Child } from "@/lib/child-service"
 import { reportService } from "@/lib/report-service"
+import { assessmentService } from "@/lib/assessment-service"
+import { questionnaireService } from "@/lib/questionnaire-service"
 
 export default function CaretakerDashboard() {
   const [children, setChildren] = useState<Child[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [reportCounts, setReportCounts] = useState<Record<string, number>>({})
+  const [assessmentCompletion, setAssessmentCompletion] = useState<Record<string, { completed: number, total: number, allComplete: boolean }>>({})
+  const [totalQuestionnaires, setTotalQuestionnaires] = useState(0)
+  const [generatingReport, setGeneratingReport] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     fetchChildren()
@@ -24,8 +29,12 @@ export default function CaretakerDashboard() {
       const response = await childService.getChildren()
       if (response.success && response.data) {
         setChildren(response.data)
-        // Fetch report counts for each child
+        // Fetch total questionnaires
+        const questionnaires = await questionnaireService.getActiveQuestionnaires()
+        setTotalQuestionnaires(questionnaires.length)
+        // Fetch report counts and assessment completion for each child
         await fetchReportCounts(response.data)
+        await fetchAssessmentCompletion(response.data, questionnaires.length)
       } else {
         setError(response.error || "Failed to load children")
       }
@@ -51,6 +60,77 @@ export default function CaretakerDashboard() {
       })
     )
     setReportCounts(counts)
+  }
+
+  const fetchAssessmentCompletion = async (childrenList: Child[], total: number) => {
+    const completion: Record<string, { completed: number, total: number, allComplete: boolean }> = {}
+    await Promise.all(
+      childrenList.map(async (child) => {
+        try {
+          const response = await assessmentService.getAssessments(child._id)
+          if (response.success && response.data) {
+            // Count unique questionnaire IDs to avoid counting duplicates
+            // Handle both populated object and string ID
+            const uniqueQuestionnaireIds = new Set(
+              response.data
+                .map(a => {
+                  // If questionnaireId is populated, it's an object with _id
+                  if (typeof a.questionnaireId === 'object' && a.questionnaireId?._id) {
+                    return a.questionnaireId._id
+                  }
+                  return a.questionnaireId
+                })
+                .filter(Boolean)
+            )
+            const completedCount = uniqueQuestionnaireIds.size
+            completion[child._id] = {
+              completed: completedCount,
+              total: total,
+              allComplete: completedCount >= total && total > 0
+            }
+          } else {
+            completion[child._id] = { completed: 0, total: total, allComplete: false }
+          }
+        } catch (err) {
+          console.error(`Error fetching assessments for child ${child._id}:`, err)
+          completion[child._id] = { completed: 0, total: total, allComplete: false }
+        }
+      })
+    )
+    setAssessmentCompletion(completion)
+  }
+
+  const handleGenerateReport = async (childId: string) => {
+    try {
+      setGeneratingReport(prev => ({ ...prev, [childId]: true }))
+      setError("")
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL
+      const token = localStorage.getItem("token")
+
+      const response = await fetch(`${apiUrl}/api/reports/generate-combined`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ childId })
+      })
+
+      const data = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to generate report')
+      }
+
+      alert('Combined report generated successfully!')
+      await fetchChildren() // Reload to update report counts
+    } catch (err: any) {
+      console.error('Error generating report:', err)
+      setError(err.message || 'Failed to generate combined report')
+    } finally {
+      setGeneratingReport(prev => ({ ...prev, [childId]: false }))
+    }
   }
 
   const getRiskColor = (level: string) => {
@@ -146,32 +226,6 @@ export default function CaretakerDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid md:grid-cols-3 gap-4 mb-8">
-        <Link href="/caretaker/add-child" className="block">
-          <Card className="p-6 hover:shadow-lg transition-all cursor-pointer border-2 hover:border-primary">
-            <Plus className="w-8 h-8 text-primary mb-3" />
-            <h3 className="font-semibold text-slate-900 mb-1">Add Child</h3>
-            <p className="text-sm text-slate-600">Register a new child</p>
-          </Card>
-        </Link>
-
-        <Link href="/caretaker/chat" className="block">
-          <Card className="p-6 hover:shadow-lg transition-all cursor-pointer border-2 hover:border-primary">
-            <MessageSquare className="w-8 h-8 text-primary mb-3" />
-            <h3 className="font-semibold text-slate-900 mb-1">Chat with Doctor</h3>
-            <p className="text-sm text-slate-600">Ask questions</p>
-          </Card>
-        </Link>
-
-        <Link href="/caretaker/questionnaires" className="block">
-          <Card className="p-6 hover:shadow-lg transition-all cursor-pointer border-2 hover:border-primary">
-            <FileText className="w-8 h-8 text-primary mb-3" />
-            <h3 className="font-semibold text-slate-900 mb-1">Take Assessment</h3>
-            <p className="text-sm text-slate-600">Screening questionnaires</p>
-          </Card>
-        </Link>
-      </div>
-
       {/* Children List */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-6">
@@ -223,7 +277,33 @@ export default function CaretakerDashboard() {
                   </div>
                 )}
 
-                <div className="grid grid-cols-3 gap-2">
+                {/* Assessment Progress */}
+                {assessmentCompletion[child._id] && (
+                  <div className="mb-4 p-3 bg-slate-50 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-semibold text-slate-600">Assessment Progress</span>
+                      <span className="text-xs text-slate-600">
+                        {assessmentCompletion[child._id].completed} / {assessmentCompletion[child._id].total}
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-200 rounded-full h-2">
+                      <div 
+                        className="bg-primary h-2 rounded-full transition-all"
+                        style={{ 
+                          width: `${(assessmentCompletion[child._id].completed / assessmentCompletion[child._id].total) * 100}%` 
+                        }}
+                      />
+                    </div>
+                    {assessmentCompletion[child._id].allComplete && (
+                      <div className="flex items-center gap-1 mt-2 text-xs text-green-600">
+                        <CheckCircle2 className="w-3 h-3" />
+                        All assessments complete
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-3 gap-2 mb-2">
                   <Link href={`/caretaker/child/${child._id}`}>
                     <Button variant="outline" size="sm" className="w-full">
                       <FileText className="w-4 h-4 mr-1" />
@@ -247,6 +327,28 @@ export default function CaretakerDashboard() {
                     </Button>
                   )}
                 </div>
+                
+                {/* Generate Report Button */}
+                {assessmentCompletion[child._id]?.allComplete && (
+                  <Button 
+                    onClick={() => handleGenerateReport(child._id)}
+                    disabled={generatingReport[child._id]}
+                    className="w-full flex items-center justify-center gap-2"
+                    size="sm"
+                  >
+                    {generatingReport[child._id] ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="w-4 h-4" />
+                        Generate Combined Report
+                      </>
+                    )}
+                  </Button>
+                )}
               </Card>
             ))}
           </div>
